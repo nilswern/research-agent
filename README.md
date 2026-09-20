@@ -266,5 +266,4 @@ most, and the part I am happiest to be questioned on.
 The assistant helped me turn them into code: implementations written against my
 specifications, the browser UI, test scaffolding, and the tooling setup around
 ruff, mypy and CI. I reviewed, corrected and tested what came back, and dropped
-what did not match the intent. Every part of this repository is something I can
-explain and defend, which is the standard that matters.
+what did not match the intent. 
