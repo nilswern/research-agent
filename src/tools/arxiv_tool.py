@@ -1,4 +1,4 @@
-"""arxiv_search — wissenschaftliche Paper, Abstracts (kein PDF-Volltext)."""
+"""arxiv_search - scientific papers, abstracts only (no PDF full text)."""
 
 from __future__ import annotations
 

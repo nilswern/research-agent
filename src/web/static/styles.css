@@ -32,8 +32,8 @@
 
 * { box-sizing: border-box; }
 
-/* Muss vor allen display-Regeln stehen: sonst überschreibt z. B. .overlay
-   das hidden-Attribut, weil Autoren-Styles den Browser-Default schlagen. */
+/* Must come before any display rule: otherwise .overlay and friends beat the
+   hidden attribute, because author styles win over the browser default. */
 [hidden] { display: none !important; }
 
 body {
@@ -233,7 +233,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
   font-size: 12px;
 }
 
-/* --- Beenden-Overlay --- */
+/* --- Quit overlay --- */
 .overlay {
   position: fixed;
   inset: 0;

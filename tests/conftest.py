@@ -1,4 +1,4 @@
-"""Test-Fixtures: deterministischer Fake-Embedder und Fake-LLM."""
+"""Test fixtures: a deterministic fake embedder and a fake LLM."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ DIM = 16
 
 
 def _fake_vector(text: str) -> list[float]:
-    """Deterministischer Fake-Embedding-Vektor für Tests."""
+    """Deterministic fake embedding vector for tests."""
     vector = [0.0] * DIM
 
     tokens = re.findall(r"\b\w+\b", text.lower())
@@ -43,7 +43,7 @@ class FakeEmbedder:
 
 
 class FakeChatModel(BaseChatModel):
-    """Gibt vorgegebene Antworten der Reihe nach zurück."""
+    """Returns the prepared responses one after another."""
 
     responses: list[Any] = Field(default_factory=list)
     index: int = 0

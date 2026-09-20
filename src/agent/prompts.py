@@ -1,4 +1,4 @@
-"""Prompts für Planung, Research-Loop, Synthese und Repair."""
+"""Prompts for planning, the research loop, synthesis and repair."""
 
 from __future__ import annotations
 

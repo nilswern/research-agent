@@ -1,4 +1,4 @@
-"""Zusammenbau des LangGraph-Workflows."""
+"""Assembly of the LangGraph workflow."""
 
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ from src.tools import build_tools
 def build_graph(store: VectorStore, settings: Settings, llm: BaseChatModel) -> CompiledStateGraph:
     tools = build_tools(store, settings)
 
-    # dict[str, Any], weil LangGraphs add_node-Overloads mit aus Factories
-    # zurückgegebenen Callables nicht zurechtkommen.
+    # dict[str, Any] because the add_node overloads cannot resolve callables
+    # that come out of a factory function.
     nodes: dict[str, Any] = {
         "plan": make_plan_node(llm, settings),
         "agent": make_agent_node(llm.bind_tools(tools)),

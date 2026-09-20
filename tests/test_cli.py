@@ -64,7 +64,7 @@ def test_apply_overrides(test_settings) -> None:
     assert updated.max_research_steps == 9
     assert updated.output_language == "de"
     assert updated.stream_final_answer is False
-    assert test_settings.max_research_steps == 2  # Original unverändert
+    assert test_settings.max_research_steps == 2  # original untouched
 
 
 def test_frontmatter_contains_sources() -> None:

@@ -1,4 +1,4 @@
-"""LLM-Factory (Google Gemini über langchain-google-genai)."""
+"""LLM factory (Google Gemini via langchain-google-genai)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 def create_llm(settings: Settings) -> BaseChatModel:
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    logger.debug("Initialisiere LLM %s", settings.llm_model)
+    logger.debug("Initialising LLM %s", settings.llm_model)
     return ChatGoogleGenerativeAI(
         model=settings.llm_model,
         temperature=settings.llm_temperature,
@@ -29,7 +29,7 @@ def create_llm(settings: Settings) -> BaseChatModel:
 
 
 class NullChatModel(BaseChatModel):
-    """Platzhalter für Aufgaben, die den Graphen bauen, aber nie ausführen."""
+    """Placeholder for tasks that build the graph but never run it."""
 
     @property
     def _llm_type(self) -> str:
@@ -45,7 +45,7 @@ class NullChatModel(BaseChatModel):
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
-        raise RuntimeError("NullChatModel darf nicht aufgerufen werden")
+        raise RuntimeError("NullChatModel must not be called")
 
 
 @lru_cache(maxsize=1)

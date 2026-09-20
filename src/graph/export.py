@@ -1,4 +1,4 @@
-"""Exportiert die Graph-Struktur als Mermaid-Diagramm."""
+"""Exports the graph structure as a Mermaid diagram."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from src.graph.builder import build_graph
 
 
 def graph_to_mermaid(store: VectorStore, settings: Settings, llm: BaseChatModel) -> str:
-    """Mermaid-Quelltext des kompilierten Graphen."""
+    """Mermaid source of the compiled graph."""
     return build_graph(store, settings, llm).get_graph().draw_mermaid().strip()
 
 

@@ -143,7 +143,7 @@ Without a terminal, double-click one of the launchers in the project root:
 | `ResearchPilot.vbs` | Starts hidden in the background, opens the browser |
 | `ResearchPilot.cmd` | Same, but keeps a window that shows errors |
 
-Both serve <http://localhost:8000>. Stop the server with the **Beenden** button
+Both serve <http://localhost:8000>. Stop the server with the **Quit** button
 in the top right of the page — closing the browser tab leaves it running.
 
 From a terminal:
@@ -172,7 +172,7 @@ except the calls the agent makes itself.
 | `GET /api/stats` | Memory statistics and default settings |
 | `GET /api/reports` · `GET /api/reports/{name}` | List and read saved reports |
 | `POST /api/purge` | Delete stale chunks |
-| `POST /api/shutdown` | Stop the server (what the *Beenden* button calls) |
+| `POST /api/shutdown` | Stop the server (what the *Quit* button calls) |
 
 The UI covers every CLI flag except `--graph`, the Mermaid export for developers.
 
@@ -244,3 +244,27 @@ pytest -q
 These are exactly the steps GitHub Actions runs on every push and pull request
 (`.github/workflows/ci.yml`, on Python 3.11 and 3.12). Tool settings — line
 length, lint rules, mypy strictness, pytest paths — live in `pyproject.toml`.
+
+## AI assistance
+
+This project was built with the help of an AI coding assistant (Claude), and it
+seems fair to say where the line runs.
+
+The design is mine. Choosing LangGraph over a hand-rolled agent loop, separating
+the research rounds from a dedicated validate/repair stage, keeping embeddings
+local and the memory persistent, and attaching provenance to every chunk so that
+the freshness cache and the source validation can build on it — those decisions,
+and the trade-offs behind them in [Design decisions](#design-decisions), came
+first and shaped everything else.
+
+My focus throughout was the framework itself: learning to model an agent in
+LangGraph as an explicit state graph — nodes, conditional edges, a bounded
+research loop, a separate repair stage and streamed events — instead of treating
+the orchestration as a black box. That is the part of this project I care about
+most, and the part I am happiest to be questioned on.
+
+The assistant helped me turn them into code: implementations written against my
+specifications, the browser UI, test scaffolding, and the tooling setup around
+ruff, mypy and CI. I reviewed, corrected and tested what came back, and dropped
+what did not match the intent. Every part of this repository is something I can
+explain and defend, which is the standard that matters.

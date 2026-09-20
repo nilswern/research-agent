@@ -1,4 +1,4 @@
-"""Speichert Reports als Markdown-Datei."""
+"""Saves reports as Markdown files."""
 
 from __future__ import annotations
 
@@ -58,5 +58,5 @@ def save_report(
         build_frontmatter(question, model, research_steps, sources, created_at) + report,
         encoding="utf-8",
     )
-    logger.info("Report gespeichert: %s", path)
+    logger.info("Report saved: %s", path)
     return path

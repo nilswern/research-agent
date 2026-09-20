@@ -1,4 +1,4 @@
-"""Zerlegt Quelldokumente in Chunks inkl. Metadaten."""
+"""Splits source documents into chunks with metadata."""
 
 from __future__ import annotations
 

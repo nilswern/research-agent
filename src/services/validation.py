@@ -1,4 +1,4 @@
-"""Prüft den Report auf erfundene Quellen und kaputte Zitate."""
+"""Checks the report for invented sources and broken citations."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def normalize_url(url: str) -> str:
 
 
 def split_report(report: str) -> tuple[str, str]:
-    """Trennt Fließtext und Referenzteil."""
+    """Split the body text from the reference section."""
     matches = list(REFERENCE_HEADING.finditer(report))
     if not matches:
         return report, ""

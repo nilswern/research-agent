@@ -1,4 +1,4 @@
-"""Pydantic-Datenmodelle für Dokumente, Chunks und Retrieval-Ergebnisse."""
+"""Pydantic data models for documents, chunks and retrieval results."""
 
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ def _utcnow() -> datetime:
 
 
 class SourceDocument(BaseModel):
-    """Ein vollständiges, von einem Tool beschafftes Quelldokument."""
+    """A complete source document fetched by one of the tools."""
 
     model_config = ConfigDict(use_enum_values=False)
 
@@ -59,7 +59,7 @@ class SourceDocument(BaseModel):
 
 
 class ChunkMetadata(BaseModel):
-    """Metadaten, die pro Chunk in ChromaDB landen."""
+    """Metadata stored in ChromaDB for every chunk."""
 
     source_tool: str
     url: str
@@ -76,7 +76,7 @@ class ChunkMetadata(BaseModel):
     language: str
 
     def to_chroma(self) -> dict[str, Any]:
-        """Chroma erlaubt nur str/int/float/bool — None-Felder werden entfernt."""
+        """Chroma only allows str/int/float/bool - None fields are dropped."""
         return {k: v for k, v in self.model_dump().items() if v is not None}
 
 
@@ -95,7 +95,7 @@ class RetrievedChunk(BaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def relevance(self) -> float:
-        """Cosine-Distanz -> Score in [0, 1]."""
+        """Cosine distance -> score in [0, 1]."""
         return max(0.0, min(1.0, 1.0 - self.distance))
 
     @property

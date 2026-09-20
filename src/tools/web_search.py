@@ -1,4 +1,4 @@
-"""google_search — allgemeine Websuche über DuckDuckGo (kein API-Key)."""
+"""google_search - general web search via DuckDuckGo (no API key)."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def run_web_search(query: str, max_results: int) -> list[dict[str, str]]:
-    """Rohsuche; normalisiert die Feldnamen verschiedener ddgs-Versionen."""
+    """Raw search; normalises the field names across ddgs versions."""
     from ddgs import DDGS
 
     try:

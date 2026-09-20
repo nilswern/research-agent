@@ -1,4 +1,4 @@
-"""Start der lokalen Weboberfläche mit uvicorn."""
+"""Starts the local web UI with uvicorn."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from src.web.app import create_app, set_shutdown_hook
 
 
 def port_is_free(host: str, port: int) -> bool:
-    """Prüft den Port vorab - uvicorn beendet den Prozess bei Bind-Fehlern selbst."""
+    """Check the port up front - uvicorn exits the process on bind errors itself."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         try:
             probe.bind((host, port))
@@ -37,7 +37,7 @@ def run_server(
     app: FastAPI | None = None,
 ) -> None:
     if not port_is_free(host, port):
-        raise OSError(f"Port {port} auf {host} ist bereits belegt.")
+        raise OSError(f"Port {port} on {host} is already in use.")
 
     settings = settings or get_settings()
     app = app or create_app(settings)
@@ -45,7 +45,7 @@ def run_server(
     config = uvicorn.Config(app, host=host, port=port, log_level=log_level.lower())
     server = uvicorn.Server(config)
 
-    # Erlaubt den "Beenden"-Button in der UI, den Server sauber zu stoppen.
+    # Lets the Quit button in the UI stop the server cleanly.
     set_shutdown_hook(app, lambda: setattr(server, "should_exit", True))
 
     if open_browser:
@@ -53,13 +53,13 @@ def run_server(
 
     server.run()
 
-    # uvicorn fängt Bind-Fehler selbst ab; ``started`` bleibt dann False.
+    # uvicorn swallows bind errors itself; ``started`` then stays False.
     if not server.started:
-        raise OSError(f"Port {port} auf {host} konnte nicht geöffnet werden.")
+        raise OSError(f"Port {port} on {host} could not be opened.")
 
 
 def main() -> None:
-    """Ermöglicht ``python -m src.web.server``."""
+    """Entry point for ``python -m src.web.server``."""
     run_server()
 
 

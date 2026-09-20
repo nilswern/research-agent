@@ -19,8 +19,8 @@ ignore = ["B008"]
 "tests/*" = ["E501"]
 
 [tool.mypy]
-# 3.12, weil die Stubs der Abhängigkeiten (numpy) 3.12-Syntax verwenden.
-# Der Code selbst läuft weiterhin ab 3.11 - dafür sorgt ruff target-version.
+# 3.12 because the dependency stubs (numpy) use 3.12 syntax. The code itself
+# still runs on 3.11 - that is what the ruff target-version enforces.
 python_version = "3.12"
 warn_unused_configs = true
 warn_redundant_casts = true

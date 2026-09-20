@@ -16,8 +16,8 @@ jobs:
         python-version: ["3.11", "3.12"]
 
     env:
-      # Settings verlangt den Key; in der CI reicht ein Platzhalter, weil kein
-      # Test das LLM aufruft. Einen echten Key nie hier, sondern als Secret.
+      # Settings requires the key; a placeholder is enough in CI because no
+      # test calls the LLM. A real key never goes here - use a secret.
       GOOGLE_API_KEY: ci-dummy-key
 
     steps:
@@ -30,8 +30,8 @@ jobs:
           cache-dependency-path: requirements-dev.txt
 
       - name: Install dependencies
-        # torch zuerst aus dem CPU-Index: sonst zieht sentence-transformers die
-        # CUDA-Variante (mehrere GB) auf einen Runner ohne GPU.
+        # torch from the CPU index first: otherwise sentence-transformers pulls
+        # the CUDA build (several GB) onto a runner without a GPU.
         run: |
           python -m pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu

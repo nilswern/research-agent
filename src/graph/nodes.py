@@ -1,4 +1,4 @@
-"""Node-Implementierungen des Research-Graphen."""
+"""Node implementations of the research graph."""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def make_plan_node(
         question = state["question"]
         response = llm.invoke([SystemMessage(PLANNER_SYSTEM_PROMPT), HumanMessage(question)])
         plan = as_text(response.content).strip()
-        logger.info("Plan erstellt (%d Zeichen)", len(plan))
+        logger.info("Plan created (%d characters)", len(plan))
 
         return {
             "plan": plan,
@@ -73,11 +73,11 @@ def make_agent_node(
         tool_calls = getattr(response, "tool_calls", None) or []
         if tool_calls:
             logger.info(
-                "Agent fordert Tools an: %s",
+                "Agent requested tools: %s",
                 ", ".join(call["name"] for call in tool_calls),
             )
         else:
-            logger.info("Agent beendet die Recherche")
+            logger.info("Agent finished researching")
         return {"messages": [response]}
 
     return agent_node
@@ -113,7 +113,7 @@ def make_tool_node(tools: list[BaseTool]) -> Callable[[ResearchState], dict[str,
             outputs.append(ToolMessage(content=content, tool_call_id=call["id"], name=name))
 
         step = state.get("research_steps", 0) + 1
-        logger.info("Research-Runde %d abgeschlossen, %d Quellen bekannt", step, len(sources))
+        logger.info("Research round %d done, %d sources known", step, len(sources))
         return {"messages": outputs, "research_steps": step, "sources": sources}
 
     return tool_node
@@ -145,7 +145,7 @@ def make_synthesis_node(
             [*state["messages"], SystemMessage(SYNTHESIS_SYSTEM_PROMPT), HumanMessage(prompt)]
         )
         report = as_text(response.content).strip()
-        logger.info("Report erstellt (%d Zeichen, %d Quellen)", len(report), len(allowed))
+        logger.info("Report written (%d characters, %d sources)", len(report), len(allowed))
         return {"report": report, "sources": allowed, "messages": [AIMessage(report)]}
 
     return synthesis_node
@@ -155,9 +155,9 @@ def validation_node(state: ResearchState) -> dict[str, Any]:
     result = validate_report(state.get("report", ""), list(state.get("sources", [])))
     issues = result.as_issues()
     if issues:
-        logger.warning("Validierung fehlgeschlagen: %s", " | ".join(issues))
+        logger.warning("Validation failed: %s", " | ".join(issues))
     else:
-        logger.info("Validierung bestanden")
+        logger.info("Validation passed")
     return {"validation_issues": issues}
 
 
@@ -170,7 +170,7 @@ def make_repair_node(llm: BaseChatModel) -> Callable[[ResearchState], dict[str, 
         )
         response = llm.invoke([SystemMessage(REPAIR_SYSTEM_PROMPT), HumanMessage(prompt)])
         attempts = state.get("repair_attempts", 0) + 1
-        logger.info("Repair-Runde %d durchgeführt", attempts)
+        logger.info("Repair round %d completed", attempts)
         return {"report": as_text(response.content).strip(), "repair_attempts": attempts}
 
     return repair_node
@@ -187,7 +187,7 @@ def route_after_agent(state: ResearchState) -> str:
 def make_route_after_tools(max_steps: int) -> Callable[[ResearchState], str]:
     def route_after_tools(state: ResearchState) -> str:
         if state.get("research_steps", 0) >= max_steps:
-            logger.info("Research-Budget (%d Runden) aufgebraucht", max_steps)
+            logger.info("Research budget (%d rounds) spent", max_steps)
             return "synthesize"
         return "agent"
 
@@ -200,7 +200,7 @@ def make_route_after_validation(max_repairs: int) -> Callable[[ResearchState], s
             return "done"
         if state.get("repair_attempts", 0) >= max_repairs:
             logger.warning(
-                "Repair-Budget aufgebraucht, Report bleibt mit %d offenen Problemen",
+                "Repair budget spent, report keeps %d open issue(s)",
                 len(state["validation_issues"]),
             )
             return "done"

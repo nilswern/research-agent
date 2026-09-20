@@ -1,4 +1,4 @@
-"""Lokale Weboberfläche für ResearchPilot."""
+"""Local web UI for ResearchPilot."""
 
 from src.web.app import create_app
 

@@ -1,4 +1,4 @@
-"""Persistenter ChromaDB-Layer inkl. Freshness-Handling."""
+"""Persistent ChromaDB layer including freshness handling."""
 
 from __future__ import annotations
 
@@ -41,18 +41,18 @@ class VectorStore:
         )
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
-            embedding_function=None,  # Embeddings werden immer explizit übergeben
+            embedding_function=None,  # embeddings are always passed explicitly
             metadata={"hnsw:space": "cosine"},
         )
-        logger.debug("ChromaDB bereit: %s (%d Chunks)", path, self.count())
+        logger.debug("ChromaDB ready: %s (%d chunks)", path, self.count())
 
-    # --- Schreiben -------------------------------------------------------
+    # --- Writing ---------------------------------------------------------
 
     def add_chunks(self, chunks: list[DocumentChunk]) -> int:
         if not chunks:
             return 0
-        # cast: Chroma nimmt verschachtelte Float-Listen an, die Stubs kennen
-        # aber nur ndarray-/Sequence-Varianten.
+        # cast: Chroma accepts nested float lists, its stubs only know the
+        # ndarray/Sequence variants.
         embeddings = cast(Any, self._embedder.embed_documents([c.text for c in chunks]))
         self._collection.upsert(
             ids=[c.chunk_id for c in chunks],
@@ -60,7 +60,7 @@ class VectorStore:
             metadatas=[c.metadata.to_chroma() for c in chunks],
             embeddings=embeddings,
         )
-        logger.info("%d Chunks gespeichert (%s)", len(chunks), chunks[0].metadata.url)
+        logger.info("%d chunks stored (%s)", len(chunks), chunks[0].metadata.url)
         return len(chunks)
 
     def add_document(
@@ -76,7 +76,7 @@ class VectorStore:
     def delete_document(self, document_id: str) -> None:
         self._collection.delete(where={"document_id": document_id})
 
-    # --- Lesen -----------------------------------------------------------
+    # --- Reading ---------------------------------------------------------
 
     def query(
         self,
@@ -92,7 +92,7 @@ class VectorStore:
             where=cast(Any, where),
             include=["documents", "metadatas", "distances"],
         )
-        # Chroma liefert die Felder als None, wenn sie nicht angefordert wurden.
+        # Chroma returns these fields as None when they were not requested.
         ids = (result.get("ids") or [[]])[0]
         documents = (result.get("documents") or [[]])[0]
         metadatas = (result.get("metadatas") or [[]])[0]
@@ -112,7 +112,7 @@ class VectorStore:
     # --- Freshness -------------------------------------------------------
 
     def has_fresh_document(self, url: str) -> bool:
-        """True, wenn die URL gespeichert und jünger als CACHE_MAX_AGE_DAYS ist."""
+        """True when the URL is stored and younger than CACHE_MAX_AGE_DAYS."""
         cutoff = (datetime.now(UTC) - timedelta(days=self._cache_max_age_days)).timestamp()
         found = self._collection.get(
             where=cast(
@@ -137,10 +137,10 @@ class VectorStore:
         stale_ids = stale.get("ids", [])
         if stale_ids:
             self._collection.delete(ids=stale_ids)
-            logger.info("%d veraltete Chunks entfernt", len(stale_ids))
+            logger.info("%d stale chunks removed", len(stale_ids))
         return len(stale_ids)
 
-    # --- Sonstiges -------------------------------------------------------
+    # --- Misc ------------------------------------------------------------
 
     def count(self) -> int:
         return int(self._collection.count())

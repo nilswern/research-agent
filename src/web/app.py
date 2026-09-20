@@ -1,7 +1,7 @@
-"""FastAPI-Backend der lokalen Weboberfläche.
+"""FastAPI backend of the local web UI.
 
-Ein Lauf wird als Server-Sent-Events gestreamt, damit Plan, Fortschritt und
-Report im Browser genauso live erscheinen wie im Terminal.
+A run is streamed as Server-Sent Events, so plan, progress and report appear
+in the browser just as live as they do in the terminal.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ FRONTMATTER_QUESTION = re.compile(r'^question:\s*"?(.*?)"?\s*$', re.MULTILINE)
 
 
 class ResearchRequest(BaseModel):
-    """Eine Recherche-Anfrage aus dem Browser."""
+    """A research request coming from the browser."""
 
     question: str
     max_steps: int | None = Field(default=None, ge=1, le=20)
@@ -46,7 +46,7 @@ class ResearchRequest(BaseModel):
 
 
 def set_shutdown_hook(app: FastAPI, hook: Callable[[], None]) -> None:
-    """Hinterlegt, wie sich der laufende Server selbst beenden kann."""
+    """Register how the running server can shut itself down."""
     app.state.shutdown_hook = hook
 
 
@@ -74,7 +74,7 @@ def _report_entry(path: Path) -> dict[str, Any]:
         head = path.read_text(encoding="utf-8")[:2000]
         match = FRONTMATTER_QUESTION.search(head)
         question = match.group(1).strip() if match else ""
-    except OSError:  # pragma: no cover - defekte Datei
+    except OSError:  # pragma: no cover - unreadable file
         pass
     return {
         "name": path.name,
@@ -88,7 +88,7 @@ def create_app(
     store: VectorStore | None = None,
     llm: BaseChatModel | None = None,
 ) -> FastAPI:
-    """Baut die FastAPI-App; ``store``/``llm`` lassen sich für Tests injizieren."""
+    """Build the FastAPI app; ``store``/``llm`` can be injected for tests."""
     settings = settings or get_settings()
     settings.ensure_directories()
     store = store if store is not None else create_store(settings)
@@ -117,7 +117,7 @@ def create_app(
         question = request.question.strip()
         try:
             run_settings = _apply_request(settings, request)
-            yield _sse({"type": "status", "text": "Recherche gestartet", "level": "info"})
+            yield _sse({"type": "status", "text": "Research started", "level": "info"})
 
             state: dict[str, Any] = {}
             for event in stream_research(
@@ -137,7 +137,7 @@ def create_app(
 
             report = str(state.get("report", "")).strip()
             if not report:
-                yield _sse({"type": "error", "text": "Kein Report erzeugt."})
+                yield _sse({"type": "error", "text": "No report produced."})
                 return
 
             saved: str | None = None
@@ -163,7 +163,7 @@ def create_app(
                     "chunks": store.count(),
                 }
             )
-        except Exception as exc:  # pragma: no cover - vom Frontend angezeigt
+        except Exception as exc:  # pragma: no cover - surfaced by the frontend
             logger.exception("Research run failed")
             yield _sse({"type": "error", "text": f"{type(exc).__name__}: {exc}"})
         finally:
@@ -191,28 +191,26 @@ def create_app(
     @app.get("/api/reports/{name}")
     def report(name: str) -> dict[str, Any]:
         if not REPORT_NAME.match(name):
-            raise HTTPException(status_code=400, detail="Ungültiger Dateiname.")
+            raise HTTPException(status_code=400, detail="Invalid file name.")
         path = (settings.reports_dir / name).resolve()
         if not path.is_file() or path.parent != settings.reports_dir.resolve():
-            raise HTTPException(status_code=404, detail="Report nicht gefunden.")
+            raise HTTPException(status_code=404, detail="Report not found.")
         return {"name": name, "content": path.read_text(encoding="utf-8")}
 
     @app.post("/api/shutdown")
     def shutdown() -> dict[str, str]:
         hook = getattr(app.state, "shutdown_hook", None)
         if hook is None:
-            raise HTTPException(
-                status_code=501, detail="Dieser Server kann sich nicht selbst beenden."
-            )
+            raise HTTPException(status_code=501, detail="This server cannot shut itself down.")
         hook()
         return {"status": "stopping"}
 
     @app.post("/api/research")
     def research(request: ResearchRequest) -> StreamingResponse:
         if not request.question.strip():
-            raise HTTPException(status_code=400, detail="Keine Frage angegeben.")
+            raise HTTPException(status_code=400, detail="No question given.")
         if not run_lock.acquire(blocking=False):
-            raise HTTPException(status_code=409, detail="Es läuft bereits eine Recherche.")
+            raise HTTPException(status_code=409, detail="A research run is already in progress.")
         return StreamingResponse(
             _event_stream(request),
             media_type="text/event-stream",

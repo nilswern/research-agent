@@ -1,4 +1,4 @@
-"""Fabrik für den VectorStore samt lokalem Embedder."""
+"""Factory for the VectorStore and its local embedder."""
 
 from __future__ import annotations
 

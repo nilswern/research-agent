@@ -1,4 +1,4 @@
-/* ResearchPilot UI: SSE-Client + kleiner Markdown-Renderer (ohne Abhängigkeiten). */
+/* ResearchPilot UI: SSE client plus a small dependency-free Markdown renderer. */
 
 const $ = (id) => document.getElementById(id);
 
@@ -124,7 +124,7 @@ function renderMarkdown(markdown) {
   return html.join("\n");
 }
 
-/* --------------------------- UI-Helfer --------------------------- */
+/* --------------------------- UI helpers --------------------------- */
 
 function setStatus(state) {
   el.dot.className = `dot ${state}`;
@@ -143,7 +143,7 @@ function showIssues(issues, isError = false) {
   if (!issues.length) { el.issues.hidden = true; return; }
   el.issues.hidden = false;
   el.issues.className = `issues${isError ? " error" : ""}`;
-  const title = isError ? "Fehler" : "Offene Quellen-Probleme";
+  const title = isError ? "Error" : "Unresolved source issues";
   el.issues.innerHTML =
     `<b>${title}</b><ul>${issues.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
 }
@@ -165,7 +165,7 @@ function showReport(markdown) {
 
 function setRunning(running) {
   el.run.disabled = running;
-  el.run.textContent = running ? "Recherche läuft …" : "Recherche starten";
+  el.run.textContent = running ? "Research running …" : "Start research";
   el.stop.hidden = !running;
 }
 
@@ -174,8 +174,8 @@ function setRunning(running) {
 async function loadStats() {
   const stats = await fetch("/api/stats").then((r) => r.json());
   el.chips.innerHTML = [
-    `<span class="chip"><b>${stats.chunks}</b> Chunks</span>`,
-    `<span class="chip"><b>${stats.documents}</b> Dokumente</span>`,
+    `<span class="chip"><b>${stats.chunks}</b> chunks</span>`,
+    `<span class="chip"><b>${stats.documents}</b> documents</span>`,
     `<span class="chip">${escapeHtml(stats.llm_model)}</span>`,
   ].join("");
   if (!el.maxSteps.value) el.maxSteps.value = stats.defaults.max_steps;
@@ -187,7 +187,7 @@ async function loadStats() {
 async function loadReports() {
   const { reports } = await fetch("/api/reports").then((r) => r.json());
   if (!reports.length) {
-    el.reports.innerHTML = '<li class="muted">Noch keine gespeicherten Reports.</li>';
+    el.reports.innerHTML = '<li class="muted">No saved reports yet.</li>';
     return;
   }
   el.reports.innerHTML = reports
@@ -203,7 +203,7 @@ async function openReport(name) {
   const data = await fetch(`/api/reports/${encodeURIComponent(name)}`).then((r) => r.json());
   const body = data.content.replace(/^---\n[\s\S]*?\n---\n/, "");
   const sources = [...data.content.matchAll(/^ {2}- (https?:\/\/\S+)$/gm)].map((m) => m[1]);
-  el.reportTitle.textContent = "Gespeicherter Report";
+  el.reportTitle.textContent = "Saved report";
   el.meta.textContent = name;
   showIssues([]);
   showReport(body.trim());
@@ -244,13 +244,13 @@ async function startResearch(question) {
       signal: controller.signal,
     });
   } catch (error) {
-    finish("error", `Verbindung fehlgeschlagen: ${error.message}`);
+    finish("error", `Connection failed: ${error.message}`);
     return;
   }
 
   if (!response.ok) {
     const detail = await response.json().catch(() => ({ detail: response.statusText }));
-    finish("error", detail.detail || "Unbekannter Fehler");
+    finish("error", detail.detail || "Unknown error");
     return;
   }
 
@@ -272,7 +272,7 @@ async function startResearch(question) {
     }
     if (el.run.disabled) finish("done");
   } catch (error) {
-    if (error.name === "AbortError") finish("done", null, "Abgebrochen.");
+    if (error.name === "AbortError") finish("done", null, "Cancelled.");
     else finish("error", error.message);
   }
 }
@@ -292,9 +292,9 @@ function handleEvent(event, streamOut) {
     showSources(event.sources);
     showIssues(event.issues);
     el.meta.textContent =
-      `${event.research_steps} Runden · ${event.sources.length} Quellen · ` +
-      `${event.repair_attempts} Repairs${event.saved ? ` · ${event.saved}` : ""}`;
-    addLog(event.saved ? `Gespeichert: ${event.saved}` : "Fertig (nicht gespeichert)", "ok");
+      `${event.research_steps} rounds · ${event.sources.length} sources · ` +
+      `${event.repair_attempts} repairs${event.saved ? ` · ${event.saved}` : ""}`;
+    addLog(event.saved ? `Saved: ${event.saved}` : "Done (not saved)", "ok");
     finish("done");
     loadStats();
     loadReports();
@@ -331,8 +331,8 @@ el.stop.addEventListener("click", () => controller?.abort());
 
 el.copy.addEventListener("click", async () => {
   await navigator.clipboard.writeText(currentMarkdown);
-  el.copy.textContent = "Kopiert ✓";
-  setTimeout(() => { el.copy.textContent = "Markdown kopieren"; }, 1500);
+  el.copy.textContent = "Copied ✓";
+  setTimeout(() => { el.copy.textContent = "Copy Markdown"; }, 1500);
 });
 
 el.reports.addEventListener("click", (event) => {
@@ -344,7 +344,7 @@ el.purge.addEventListener("click", async () => {
   el.purge.disabled = true;
   try {
     const result = await fetch("/api/purge", { method: "POST" }).then((r) => r.json());
-    addLog(`${result.removed} veraltete Chunks entfernt`, "ok");
+    addLog(`${result.removed} stale chunks removed`, "ok");
     await loadStats();
   } finally {
     el.purge.disabled = false;
@@ -354,14 +354,14 @@ el.purge.addEventListener("click", async () => {
 el.quit.addEventListener("click", async () => {
   const running = el.run.disabled;
   const question = running
-    ? "Es läuft gerade eine Recherche. Trotzdem beenden?"
-    : "ResearchPilot beenden?";
+    ? "A research run is in progress. Quit anyway?"
+    : "Quit ResearchPilot?";
   if (!confirm(question)) return;
   controller?.abort();
   try {
     await fetch("/api/shutdown", { method: "POST" });
   } catch {
-    /* Server ist beim Beenden weg - das ist der Normalfall. */
+    /* The server is already gone while shutting down - that is expected. */
   }
   el.overlay.hidden = false;
 });

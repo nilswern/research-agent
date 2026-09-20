@@ -1,4 +1,4 @@
-"""Zentrale Konfiguration, geladen aus .env."""
+"""Central configuration, loaded from .env."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     scraper_max_chars: int = Field(default=20_000, ge=1000)
     user_agent: str = "ResearchPilot/0.1"
 
-    # --- Ausgabe ---
+    # --- Output ---
     output_language: str = "en"
     reports_dir: Path = Path("reports")
     stream_final_answer: bool = True
@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     def _overlap_below_size(cls, value: int, info: ValidationInfo) -> int:
         chunk_size = info.data.get("chunk_size")
         if chunk_size is not None and value >= chunk_size:
-            raise ValueError("CHUNK_OVERLAP muss kleiner als CHUNK_SIZE sein")
+            raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
         return value
 
     def ensure_directories(self) -> None:
@@ -83,5 +83,5 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    # Pflichtfelder wie GOOGLE_API_KEY kommen aus .env - das sieht mypy nicht.
+    # Required fields such as GOOGLE_API_KEY come from .env - mypy cannot see that.
     return Settings()  # type: ignore[call-arg]

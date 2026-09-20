@@ -1,4 +1,4 @@
-"""HTTP-Fetch + Textextraktion für beliebige Webseiten."""
+"""HTTP fetch and text extraction for arbitrary web pages."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 class ScrapeError(RuntimeError):
-    """Seite konnte nicht geladen oder nicht sinnvoll extrahiert werden."""
+    """The page could not be fetched or yielded no usable text."""
 
 
 def fetch_html(url: str, *, timeout: int, user_agent: str) -> str:
@@ -62,7 +62,7 @@ def extract_document(
             author = metadata.author
             published = metadata.date
             language = metadata.language or "en"
-    except Exception as exc:  # Metadaten sind optional
+    except Exception as exc:  # metadata is optional
         logger.debug("Metadata extraction failed for %s: %s", url, exc)
 
     return SourceDocument(

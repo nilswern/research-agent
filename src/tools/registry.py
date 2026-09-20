@@ -1,4 +1,4 @@
-"""Baut die Tool-Liste für den Agenten."""
+"""Builds the tool list for the agent."""
 
 from __future__ import annotations
 

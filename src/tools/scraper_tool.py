@@ -1,4 +1,4 @@
-"""web_scraper — Volltext einer konkreten URL, mit Freshness-Check."""
+"""web_scraper - full text of one URL, with a freshness check."""
 
 from __future__ import annotations
 

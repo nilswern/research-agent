@@ -1,4 +1,4 @@
-"""Smoke-Test der echten Tools (echte Netzwerk-Calls)."""
+"""Smoke test of the real tools (real network calls)."""
 
 from __future__ import annotations
 

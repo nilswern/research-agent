@@ -1,4 +1,4 @@
-"""Lokaler Embedding-Service (sentence-transformers, keine API-Quota)."""
+"""Local embedding service (sentence-transformers, no API quota)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 class EmbeddingService:
-    """Kapselt Modell-Laden und die E5-typischen query:/passage:-Prefixe."""
+    """Wraps model loading and the E5 query:/passage: prefixes."""
 
     def __init__(self, model_name: str, device: str = "cpu", batch_size: int = 32) -> None:
         self.model_name = model_name
@@ -28,7 +28,7 @@ class EmbeddingService:
         if self._model is None:
             from sentence_transformers import SentenceTransformer
 
-            logger.info("Lade Embedding-Modell %s (%s)", self.model_name, self.device)
+            logger.info("Loading embedding model %s (%s)", self.model_name, self.device)
             self._model = SentenceTransformer(self.model_name, device=self.device)
         return self._model
 
@@ -59,7 +59,7 @@ class EmbeddingService:
     def dimension(self) -> int:
         dimension = self.model.get_sentence_embedding_dimension()
         if dimension is None:
-            raise RuntimeError(f"Modell {self.model_name} liefert keine Embedding-Dimension")
+            raise RuntimeError(f"Model {self.model_name} reports no embedding dimension")
         return int(dimension)
 
 

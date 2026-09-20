@@ -1,4 +1,4 @@
-"""Logging-Setup mit rich."""
+"""Logging setup with rich."""
 
 from __future__ import annotations
 

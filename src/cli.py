@@ -1,4 +1,4 @@
-"""CLI-Einstiegspunkt für ResearchPilot."""
+"""Command line entry point for ResearchPilot."""
 
 from __future__ import annotations
 
@@ -127,16 +127,16 @@ def run_research(
 
 
 def serve_web(args: argparse.Namespace, settings: Settings, console: Console) -> int:
-    """Startet die lokale Weboberfläche."""
+    """Start the local web UI."""
     try:
         from src.web.server import run_server
-    except ModuleNotFoundError as exc:  # fastapi/uvicorn fehlen
-        console.print(f"[red]Web UI nicht verfügbar:[/red] {exc}")
-        console.print("Installiere die Abhängigkeiten: pip install -r requirements.txt")
+    except ModuleNotFoundError as exc:  # fastapi/uvicorn missing
+        console.print(f"[red]Web UI unavailable:[/red] {exc}")
+        console.print("Install the dependencies: pip install -r requirements.txt")
         return 2
 
     url = f"http://{args.host}:{args.port}"
-    console.print(f"[green]ResearchPilot UI:[/green] {url}  [dim](Strg+C beendet)[/dim]")
+    console.print(f"[green]ResearchPilot UI:[/green] {url}  [dim](Ctrl+C stops it)[/dim]")
     try:
         run_server(
             settings,
@@ -146,8 +146,8 @@ def serve_web(args: argparse.Namespace, settings: Settings, console: Console) ->
             log_level=settings.log_level if args.verbose else "warning",
         )
     except OSError as exc:
-        console.print(f"[red]Server konnte nicht starten:[/red] {exc}")
-        console.print(f"Läuft ResearchPilot bereits auf Port {args.port}?")
+        console.print(f"[red]Server failed to start:[/red] {exc}")
+        console.print(f"Is ResearchPilot already running on port {args.port}?")
         return 1
     return 0
 
@@ -172,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     store = create_store(settings)
 
     if args.purge:
-        console.print(f"{store.purge_stale()} veraltete Chunks entfernt")
+        console.print(f"{store.purge_stale()} stale chunks removed")
 
     if args.graph:
         console.print(
@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = run_research(question, settings, store, console)
     except KeyboardInterrupt:
-        console.print("\n[yellow]Abgebrochen.[/yellow]")
+        console.print("\n[yellow]Cancelled.[/yellow]")
         return 130
     except Exception as exc:
         logger.exception("Research run failed")
@@ -207,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
 
     report = result.get("report", "")
     if not report:
-        console.print("[red]Kein Report erzeugt.[/red]")
+        console.print("[red]No report produced.[/red]")
         return 1
 
     print_issues(list(result.get("validation_issues", [])), console)
@@ -224,9 +224,9 @@ def main(argv: list[str] | None = None) -> int:
         console.print(f"\n[green]Saved:[/green] {path}")
 
     console.print(
-        f"[dim]{result.get('research_steps', 0)} Runden · "
-        f"{len(result.get('sources', []))} Quellen · "
+        f"[dim]{result.get('research_steps', 0)} rounds · "
+        f"{len(result.get('sources', []))} sources · "
         f"{result.get('repair_attempts', 0)} Repairs · "
-        f"{store.count()} Chunks im Speicher[/dim]"
+        f"{store.count()} chunks in memory[/dim]"
     )
     return 0

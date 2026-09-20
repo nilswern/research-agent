@@ -1,4 +1,4 @@
-"""Graph-State und Hilfsfunktionen."""
+"""Graph state and helpers."""
 
 from __future__ import annotations
 

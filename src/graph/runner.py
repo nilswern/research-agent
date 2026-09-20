@@ -1,7 +1,7 @@
-"""Oberflächenunabhängiger Event-Stream eines Research-Laufs.
+"""Frontend-agnostic event stream of a research run.
 
-CLI und Web-UI konsumieren dieselben Events, damit die Fortschrittsanzeige
-in beiden Frontends identisch bleibt.
+The CLI and the web UI consume the same events, so progress reporting stays
+identical in both frontends.
 """
 
 from __future__ import annotations
@@ -33,12 +33,12 @@ STREAMING_NODES = {"synthesize": "Report", "repair": "Corrected report"}
 
 @dataclass(slots=True)
 class ResearchEvent:
-    """Ein Ereignis während eines Laufs.
+    """A single event during a run.
 
-    ``type`` ist eines von:
-    ``plan`` (Rechercheplan), ``status`` (Fortschrittszeile),
-    ``token`` (Report-Fragment beim Streaming), ``report`` (kompletter Report
-    ohne Streaming) und ``final`` (Endzustand des Graphen in ``state``).
+    ``type`` is one of:
+    ``plan`` (the research plan), ``status`` (a progress line),
+    ``token`` (a report fragment while streaming), ``report`` (the whole report
+    when streaming is off) and ``final`` (the end state of the graph).
     """
 
     type: str
@@ -55,27 +55,27 @@ def merge_state(state: dict[str, Any], update: dict[str, Any]) -> None:
 
 
 def describe_update(node: str, update: dict[str, Any]) -> tuple[str, str] | None:
-    """Übersetzt ein Node-Update in eine Fortschrittszeile mit Level."""
+    """Turn a node update into a progress line with a level."""
     if node == "plan":
-        return "Plan erstellt", "info"
+        return "Plan created", "info"
     if node == "agent":
         messages = update.get("messages") or []
         calls = getattr(messages[-1], "tool_calls", None) if messages else None
         if calls:
             return "→ " + ", ".join(call["name"] for call in calls), "info"
-        return "→ genug Belege gesammelt", "info"
+        return "→ enough evidence gathered", "info"
     if node == "tools":
         rounds = (
-            f"Runde {update.get('research_steps', '?')} · {len(update.get('sources', []))} Quellen"
+            f"Round {update.get('research_steps', '?')} · {len(update.get('sources', []))} sources"
         )
         return rounds, "info"
     if node == "synthesize":
-        return "Report wird geschrieben", "info"
+        return "Writing the report", "info"
     if node == "validate":
         issues = update.get("validation_issues") or []
         if issues:
-            return f"Validierung: {len(issues)} Problem(e), Repair läuft", "warn"
-        return "Validierung bestanden", "ok"
+            return f"Validation: {len(issues)} issue(s), repairing", "warn"
+        return "Validation passed", "ok"
     return None
 
 
@@ -85,7 +85,7 @@ def stream_research(
     store: VectorStore,
     llm: BaseChatModel | None = None,
 ) -> Iterator[ResearchEvent]:
-    """Führt einen Research-Lauf aus und liefert dabei Events."""
+    """Run the research graph and yield events while it works."""
     graph = build_graph(store, settings, llm or create_llm(settings))
     state = initial_state(question)
     config: RunnableConfig = {"recursion_limit": recursion_limit(settings)}
@@ -101,8 +101,8 @@ def stream_research(
     streamed: list[str] = []
     streaming_node: str | None = None
 
-    # cast: mit mehreren stream_modes liefert LangGraph (mode, payload)-Tupel,
-    # die Signatur gibt das aber nicht her.
+    # cast: with several stream_modes LangGraph yields (mode, payload) tuples,
+    # which its signature does not express.
     events = cast(
         Iterator[tuple[str, Any]],
         graph.stream(state, config=config, stream_mode=["updates", "messages"]),

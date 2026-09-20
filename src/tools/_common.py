@@ -1,4 +1,4 @@
-"""Gemeinsame Helfer für die Tool-Ausgabe."""
+"""Shared helpers for tool output."""
 
 from __future__ import annotations
 

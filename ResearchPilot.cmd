@@ -1,6 +1,6 @@
 @echo off
-rem ResearchPilot mit sichtbarem Fenster starten (Doppelklick).
-rem Das Fenster zeigt Fehler an; Strg+C oder der "Beenden"-Button stoppt den Server.
+rem Start ResearchPilot with a visible window (double-click).
+rem The window shows errors; Ctrl+C or the Quit button stops the server.
 setlocal
 cd /d "%~dp0"
 title ResearchPilot
@@ -11,10 +11,10 @@ if exist ".venv\Scripts\python.exe" (
     set "RP_PYTHON=python"
 )
 
-echo ResearchPilot startet, der Browser oeffnet sich gleich ...
+echo Starting ResearchPilot, the browser will open shortly ...
 "%RP_PYTHON%" main.py --web --port 8000
 if errorlevel 1 (
     echo.
-    echo Start fehlgeschlagen. Laeuft ResearchPilot vielleicht schon?
+    echo Start failed. Is ResearchPilot already running?
     pause
 )

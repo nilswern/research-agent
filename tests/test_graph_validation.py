@@ -80,7 +80,7 @@ def test_graph_stops_after_repair_budget(store, test_settings) -> None:
     result = build_graph(store, settings, llm).invoke(initial_state("What is RAG?"))
 
     assert result["repair_attempts"] == 1
-    assert result["validation_issues"]  # bleibt offen, wird dem Nutzer angezeigt
+    assert result["validation_issues"]  # stays open and is shown to the user
 
 
 def test_clean_report_skips_repair(store, test_settings) -> None:

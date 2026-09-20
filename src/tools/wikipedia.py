@@ -1,4 +1,4 @@
-"""wikipedia_search — enzyklopädische Übersichten, Volltext landet in ChromaDB."""
+"""wikipedia_search - encyclopedic overviews, full text goes into ChromaDB."""
 
 from __future__ import annotations
 

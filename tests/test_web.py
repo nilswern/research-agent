@@ -1,4 +1,4 @@
-"""Tests der Web-API - ohne Netzwerk, mit Fake-LLM."""
+"""Tests for the web API - no network, fake LLM."""
 
 from __future__ import annotations
 

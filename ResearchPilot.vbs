@@ -1,5 +1,5 @@
-' ResearchPilot ohne Terminal-Fenster starten (Doppelklick).
-' Beenden ueber den "Beenden"-Button in der Weboberflaeche.
+' Start ResearchPilot without a terminal window (double-click).
+' Stop it with the Quit button in the web UI.
 Option Explicit
 
 Dim fso, shell, root, python
@@ -12,5 +12,5 @@ shell.CurrentDirectory = root
 python = root & "\.venv\Scripts\python.exe"
 If Not fso.FileExists(python) Then python = "python"
 
-' Fensterstil 0 = unsichtbar, False = nicht auf das Ende warten.
+' Window style 0 = hidden, False = do not wait for it to finish.
 shell.Run """" & python & """ main.py --web --port 8000", 0, False

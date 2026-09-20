@@ -1,4 +1,4 @@
-"""search_memory — semantische Suche über bereits gesammeltes Material."""
+"""search_memory - semantic search over material collected earlier."""
 
 from __future__ import annotations
 

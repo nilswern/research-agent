@@ -1,4 +1,4 @@
-"""Smoke-Test mit echtem Embedding-Modell und echter ChromaDB."""
+"""Smoke test with the real embedding model and a real ChromaDB."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ def main() -> None:
     settings.ensure_directories()
 
     store = get_vector_store()
-    print(f"Chunks vor dem Lauf: {store.count()}")
+    print(f"Chunks before the run: {store.count()}")
 
     document = SourceDocument(
         source_tool=SourceTool.WIKIPEDIA,
@@ -31,8 +31,8 @@ def main() -> None:
         language="en",
     )
     added = store.add_document(document, settings.chunk_size, settings.chunk_overlap)
-    print(f"Neu gespeicherte Chunks: {added}")
-    print(f"Frisch? {store.has_fresh_document(document.url)}")
+    print(f"Newly stored chunks: {added}")
+    print(f"Fresh? {store.has_fresh_document(document.url)}")
 
     for hit in store.query("how does RAG reduce hallucinations", top_k=3):
         print(f"[{hit.relevance:.3f}] {hit.title} -> {hit.text[:90]}...")
