@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ResearchPilot</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🔭</text></svg>" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot" id="statusDot"></span> ResearchPilot</div>
+    <div class="chips" id="chips"></div>
+    <button type="button" class="ghost" id="purge" title="Veraltete Chunks aus dem Speicher entfernen">Speicher aufräumen</button>
+    <button type="button" class="ghost" id="quit" title="Server beenden und Programm schließen">Beenden</button>
+  </header>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="overlay-box">
+      <h2>ResearchPilot beendet</h2>
+      <p class="muted">Der Server läuft nicht mehr — du kannst diesen Tab schließen.</p>
+    </div>
+  </div>
+
+  <main>
+    <section class="col-left">
+      <form id="ask" class="card">
+        <label class="label" for="question">Frage</label>
+        <textarea id="question" rows="4" placeholder="Was soll ich recherchieren?  (Strg + Enter startet)"></textarea>
+
+        <details class="options">
+          <summary>Optionen</summary>
+          <div class="grid">
+            <label>Runden<input type="number" id="maxSteps" min="1" max="20" /></label>
+            <label>Treffer/Suche<input type="number" id="results" min="1" max="20" /></label>
+            <label>Repairs<input type="number" id="repairs" min="0" max="3" /></label>
+            <label>Sprache
+              <select id="language">
+                <option value="en">en</option>
+                <option value="de">de</option>
+              </select>
+            </label>
+          </div>
+          <label class="check"><input type="checkbox" id="save" checked /> Report in <code>reports/</code> speichern</label>
+        </details>
+
+        <div class="actions">
+          <button type="submit" id="run">Recherche starten</button>
+          <button type="button" id="stop" class="ghost" hidden>Abbrechen</button>
+        </div>
+      </form>
+
+      <div class="card" id="planCard" hidden>
+        <h2>Rechercheplan</h2>
+        <pre id="plan" class="plan"></pre>
+      </div>
+
+      <div class="card">
+        <h2>Aktivität</h2>
+        <ul id="log" class="log"><li class="muted">Bereit.</li></ul>
+      </div>
+
+      <div class="card">
+        <h2>Frühere Reports</h2>
+        <ul id="reports" class="reports"><li class="muted">Wird geladen …</li></ul>
+      </div>
+    </section>
+
+    <section class="col-main card">
+      <div class="report-head">
+        <h2 id="reportTitle">Report</h2>
+        <div class="head-actions">
+          <span id="meta" class="meta"></span>
+          <button type="button" class="ghost" id="copy" hidden>Markdown kopieren</button>
+        </div>
+      </div>
+
+      <div id="issues" class="issues" hidden></div>
+      <article id="report" class="markdown">
+        <p class="empty">Noch kein Report — stelle links eine Frage.</p>
+      </article>
+
+      <div id="sourcesCard" hidden>
+        <h2>Quellen <span id="sourceCount" class="badge"></span></h2>
+        <ol id="sources" class="sources"></ol>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
