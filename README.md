@@ -1,6 +1,6 @@
 # ResearchPilot
 
-[![CI](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml)
+[![CI](https://github.com/nilswern/research-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/nilswern/research-agent/actions/workflows/ci.yml)
 
 An autonomous research agent built with **LangGraph**, **Google Gemini** and a local
 **ChromaDB** vector store. Give it a question; it plans, decides which tools to use,
