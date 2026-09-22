@@ -80,6 +80,9 @@ survived, research rounds, sources, duration and token usage, and writes JSON
 plus a Markdown table to `evals/results/`. It makes real API calls, so it is
 never part of CI; the harness itself is covered by offline tests.
 
+It checks citations, not whether the agent *declined*: for the `hard-to-source`
+group, judging that still means reading the report.
+
 Run of 2026-09-22, cold start with an empty store, three rounds per question,
 `gemini-3.5-flash-lite` (the free tier allows 15 calls per minute and a question
 costs seven or eight). Raw data:
@@ -171,6 +174,8 @@ CDN, down to a hand-written Markdown renderer.
 - Single user by design: the server binds to localhost and has no authentication.
 - Only one run at a time; a second request is rejected rather than competing for
   the vector store.
+- No LangGraph checkpointer: a run cannot be paused, resumed after a crash, or
+  handed to a human for review mid-flight.
 - DuckDuckGo throttles aggressively; heavy use produces empty search rounds.
 - Retrieval is pure vector similarity: no re-ranking, no hybrid keyword search.
 - The faithfulness check measures similarity, not entailment: it flags claims a
@@ -248,3 +253,7 @@ The assistant helped me turn those decisions into code: implementations written
 against my specifications, the browser UI, test scaffolding, and the tooling
 around ruff, mypy and CI. I reviewed, corrected and tested what came back, and
 dropped what did not match the intent.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
