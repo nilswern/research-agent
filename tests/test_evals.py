@@ -12,8 +12,7 @@ from evals.run_eval import (
     run_question,
     to_markdown,
 )
-from src.models.document import SourceDocument, SourceTool
-from tests.conftest import FakeChatModel, tool_call_message
+from tests.conftest import FakeChatModel, seed_rag_document, tool_call_message
 
 SOURCE_URL = "https://arxiv.org/abs/2005.11401"
 GOOD_REPORT = (
@@ -24,19 +23,6 @@ BAD_REPORT = (
     "# RAG\n## Summary\nA study found 40% fewer errors [1].\n"
     "## References\n[1] Invented - https://example.com/made-up"
 )
-
-
-def _seed(store, settings) -> None:
-    store.add_document(
-        SourceDocument(
-            source_tool=SourceTool.ARXIV,
-            url=SOURCE_URL,
-            title="Retrieval Augmented Generation",
-            text="Retrieval augmented generation combines retrieval and generation. " * 20,
-        ),
-        settings.chunk_size,
-        settings.chunk_overlap,
-    )
 
 
 def _llm(report: str, *, repaired: str | None = None) -> FakeChatModel:
@@ -72,7 +58,7 @@ def test_question_set_is_usable() -> None:
 
 
 def test_run_question_measures_a_clean_run(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     item = EvalQuestion(id="fact-01", question="What is RAG?", category="factual")
 
     result = run_question(item, test_settings, store, _llm(GOOD_REPORT))
@@ -87,7 +73,7 @@ def test_run_question_measures_a_clean_run(store, test_settings) -> None:
 
 
 def test_run_question_records_a_repair(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     item = EvalQuestion(id="hard-01", question="How much does RAG help?", category="hard-to-source")
 
     result = run_question(item, test_settings, store, _llm(BAD_REPORT, repaired=GOOD_REPORT))
@@ -98,7 +84,7 @@ def test_run_question_records_a_repair(store, test_settings) -> None:
 
 
 def test_run_question_reports_a_fabricated_url_that_survives(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     settings = test_settings.model_copy(update={"max_report_repairs": 0})
     item = EvalQuestion(id="hard-02", question="How much does RAG help?", category="hard-to-source")
 
@@ -110,7 +96,7 @@ def test_run_question_reports_a_fabricated_url_that_survives(store, test_setting
 
 
 def test_token_usage_is_summed_when_the_provider_reports_it(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     llm = _llm(GOOD_REPORT)
     for message in llm.responses:
         message.usage_metadata = {"input_tokens": 10, "output_tokens": 4, "total_tokens": 14}

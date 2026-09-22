@@ -8,22 +8,8 @@ from src.graph.nodes import (
     route_after_agent,
 )
 from src.graph.state import initial_state
-from src.models.document import SourceDocument, SourceTool
 from src.tools import build_tools
-from tests.conftest import FakeChatModel, tool_call_message
-
-
-def _seed_memory(store, settings) -> None:
-    store.add_document(
-        SourceDocument(
-            source_tool=SourceTool.ARXIV,
-            url="https://arxiv.org/abs/2005.11401",
-            title="Retrieval Augmented Generation",
-            text="Retrieval augmented generation combines retrieval and generation. " * 20,
-        ),
-        settings.chunk_size,
-        settings.chunk_overlap,
-    )
+from tests.conftest import FakeChatModel, seed_rag_document, tool_call_message
 
 
 def test_plan_node_seeds_messages(test_settings) -> None:
@@ -50,7 +36,7 @@ def test_route_after_tools_respects_budget() -> None:
 
 
 def test_tool_node_executes_and_collects_sources(store, test_settings) -> None:
-    _seed_memory(store, test_settings)
+    seed_rag_document(store, test_settings)
     node = make_tool_node(build_tools(store, test_settings))
     state = {
         **initial_state("What is RAG?"),
@@ -89,7 +75,7 @@ def test_tool_node_survives_failing_tool(store, test_settings, monkeypatch) -> N
 
 
 def test_full_run_with_one_tool_round(store, test_settings) -> None:
-    _seed_memory(store, test_settings)
+    seed_rag_document(store, test_settings)
     llm = FakeChatModel(
         responses=[
             AIMessage(content="Plan: check memory", id="plan"),
@@ -111,7 +97,7 @@ def test_full_run_with_one_tool_round(store, test_settings) -> None:
 
 
 def test_budget_stops_endless_loop(store, test_settings) -> None:
-    _seed_memory(store, test_settings)
+    seed_rag_document(store, test_settings)
     llm = FakeChatModel(
         responses=[
             AIMessage(content="Plan", id="plan"),

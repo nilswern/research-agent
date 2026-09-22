@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from functools import lru_cache
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
@@ -11,7 +10,7 @@ from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatResult
 
 from src.config.logging_config import get_logger
-from src.config.settings import Settings, get_settings
+from src.config.settings import Settings
 
 logger = get_logger(__name__)
 
@@ -46,8 +45,3 @@ class NullChatModel(BaseChatModel):
         **kwargs: Any,
     ) -> ChatResult:
         raise RuntimeError("NullChatModel must not be called")
-
-
-@lru_cache(maxsize=1)
-def get_llm() -> BaseChatModel:
-    return create_llm(get_settings())

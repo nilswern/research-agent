@@ -6,9 +6,8 @@ from langchain_core.messages import AIMessage
 from rich.console import Console
 
 from src.cli import apply_overrides, parse_args, run_research
-from src.models.document import SourceDocument, SourceTool
 from src.services.reporting import build_frontmatter, save_report, slugify
-from tests.conftest import FakeChatModel, tool_call_message
+from tests.conftest import FakeChatModel, seed_rag_document, tool_call_message
 
 REPORT = (
     "# RAG\n## Summary\nIt combines retrieval and generation [1].\n"
@@ -20,19 +19,6 @@ def _console() -> Console:
     return Console(
         file=open(os.devnull, "w", encoding="utf-8"),
         force_terminal=False,
-    )
-
-
-def _seed(store, settings) -> None:
-    store.add_document(
-        SourceDocument(
-            source_tool=SourceTool.ARXIV,
-            url="https://arxiv.org/abs/2005.11401",
-            title="Retrieval Augmented Generation",
-            text="Retrieval augmented generation combines retrieval and generation. " * 20,
-        ),
-        settings.chunk_size,
-        settings.chunk_overlap,
     )
 
 
@@ -95,7 +81,7 @@ def test_save_report_writes_file(tmp_path: Path) -> None:
 
 
 def test_run_research_without_streaming(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     settings = test_settings.model_copy(update={"stream_final_answer": False})
     result = run_research("What is RAG?", settings, store, _console(), llm=_llm())
 
@@ -105,7 +91,7 @@ def test_run_research_without_streaming(store, test_settings) -> None:
 
 
 def test_run_research_with_streaming(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     result = run_research("What is RAG?", test_settings, store, _console(), llm=_llm())
 
     assert "# RAG" in result["report"]

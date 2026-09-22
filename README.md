@@ -45,8 +45,9 @@ Tool selection is made by the model, not hard-coded:
 
 Everything retrieved is chunked, embedded locally and persisted in ChromaDB with
 full provenance: `source_tool`, `url`, `title`, `author`, `published_date`,
-`retrieved_at`, `query`, `chunk_index`, `content_hash`, `document_id`,
-`content_type`, `language`. Chunks older than `CACHE_MAX_AGE_DAYS` count as stale;
+`retrieved_at` (plus a numeric `retrieved_at_ts` the freshness check filters on),
+`query`, `chunk_index`, `content_hash`, `document_id`, `content_type`,
+`language`. Chunks older than `CACHE_MAX_AGE_DAYS` count as stale;
 `--purge` removes them. Re-indexing a known URL upserts instead of duplicating.
 
 ### Source integrity
@@ -122,7 +123,8 @@ scraped. See [Security](#security) for what this does and does not cover.
 
 ### Known limitations
 
-- Single user by design: the server binds to localhost and has no authentication.
+- Single user by design: the server binds to localhost and has no
+  authentication; see [Security](#security) for the rest of the threat model.
 - DuckDuckGo throttles aggressively; heavy use produces empty search rounds.
 - Cancelling a run stops it at the next event — an LLM or tool call already in
   flight still finishes.
@@ -225,7 +227,7 @@ python main.py --graph
 python main.py "How do vector databases handle metadata filtering?" --max-steps 3
 ```
 
-The terminal shows the run as it happens:
+The terminal shows the run as it happens (abridged):
 
 ```
 ╭─ Question ───────────────────────────────────────────╮
@@ -238,25 +240,34 @@ Plan created
 │ 3. Read one primary source in full                   │
 ╰──────────────────────────────────────────────────────╯
 → search_memory
-  Round 1 · 0 sources
-→ google_search, wikipedia_search
-  Round 2 · 7 sources
+  Round 1 · 2 sources
+→ google_search, arxiv_search
+  Round 2 · 11 sources
 → scrape_webpage
-  Round 3 · 9 sources
+  Round 3 · 14 sources
 Writing the report
-──────────────────── Report ───────────────────────────
-# Metadata filtering in vector databases
+───────────────────── Report ──────────────────────────
+# How Vector Databases Handle Metadata Filtering
 ## Summary
+Vector databases combine similarity search with attribute constraints using
+Filtered Approximate Nearest Neighbor Search (FANNS) ...
+Validation: 1 issue(s), repairing
+───────────────── Corrected report ────────────────────
 ...
 Validation passed
 
-Saved: reports/20260922-104233_how-do-vector-databases-handle-met.md
-3 rounds · 9 sources · 0 repairs · 142 chunks in memory
+Saved: reports/20260922-100711_how-do-vector-databases-handle-metadata-filtering.md
+3 rounds · 14 sources · 1 repairs · 277 chunks in memory
 ```
 
-A full generated report from that command, including its frontmatter and
-reference list, is committed as
-[`examples/metadata-filtering.md`](examples/metadata-filtering.md).
+That run needed one repair: the first draft did not pass validation, the
+corrected one did. The complete report, with frontmatter and reference list, is
+committed as [`examples/metadata-filtering.md`](examples/metadata-filtering.md).
+
+The browser UI shows the same run: plan and activity log on the left, the report
+streaming in on the right.
+
+![The browser UI during a run](docs/ui.png)
 
 ## Evaluation
 

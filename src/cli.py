@@ -226,7 +226,7 @@ def main(argv: list[str] | None = None) -> int:
     console.print(
         f"[dim]{result.get('research_steps', 0)} rounds · "
         f"{len(result.get('sources', []))} sources · "
-        f"{result.get('repair_attempts', 0)} Repairs · "
+        f"{result.get('repair_attempts', 0)} repairs · "
         f"{store.count()} chunks in memory[/dim]"
     )
     return 0

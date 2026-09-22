@@ -3,8 +3,7 @@ from langchain_core.messages import AIMessage
 from src.graph.builder import build_graph
 from src.graph.nodes import make_route_after_validation, make_validation_node
 from src.graph.state import initial_state
-from src.models.document import SourceDocument, SourceTool
-from tests.conftest import FakeChatModel, tool_call_message
+from tests.conftest import FakeChatModel, seed_rag_document, tool_call_message
 
 SOURCE_URL = "https://arxiv.org/abs/2005.11401"
 BAD_REPORT = (
@@ -15,19 +14,6 @@ GOOD_REPORT = (
     "# RAG\n## Findings\nIt reduces hallucinations [1].\n"
     f"## References\n[1] RAG paper - {SOURCE_URL}"
 )
-
-
-def _seed(store, settings) -> None:
-    store.add_document(
-        SourceDocument(
-            source_tool=SourceTool.ARXIV,
-            url=SOURCE_URL,
-            title="Retrieval Augmented Generation",
-            text="Retrieval augmented generation reduces hallucinations. " * 20,
-        ),
-        settings.chunk_size,
-        settings.chunk_overlap,
-    )
 
 
 def test_validation_node_reports_issues(store, test_settings) -> None:
@@ -50,7 +36,7 @@ def test_route_after_validation() -> None:
 
 
 def test_graph_repairs_fabricated_source(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     llm = FakeChatModel(
         responses=[
             AIMessage(content="Plan", id="plan"),
@@ -68,7 +54,7 @@ def test_graph_repairs_fabricated_source(store, test_settings) -> None:
 
 
 def test_graph_stops_after_repair_budget(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     settings = test_settings.model_copy(update={"max_report_repairs": 1})
     llm = FakeChatModel(
         responses=[
@@ -86,7 +72,7 @@ def test_graph_stops_after_repair_budget(store, test_settings) -> None:
 
 
 def test_clean_report_skips_repair(store, test_settings) -> None:
-    _seed(store, test_settings)
+    seed_rag_document(store, test_settings)
     llm = FakeChatModel(
         responses=[
             AIMessage(content="Plan", id="plan"),

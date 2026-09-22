@@ -15,6 +15,7 @@ from pydantic import Field
 
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
+from src.models.document import SourceDocument, SourceTool
 
 DIM = 16
 
@@ -98,4 +99,25 @@ def test_settings() -> Settings:
         chunk_size=400,
         chunk_overlap=50,
         retrieval_top_k=3,
+    )
+
+
+RAG_URL = "https://arxiv.org/abs/2005.11401"
+
+
+def seed_rag_document(store: VectorStore, settings: Settings) -> None:
+    """The one source most graph tests research against."""
+    store.add_document(
+        SourceDocument(
+            source_tool=SourceTool.ARXIV,
+            url=RAG_URL,
+            title="Retrieval Augmented Generation",
+            text=(
+                "Retrieval augmented generation combines retrieval and generation. "
+                "It reduces hallucinations by grounding the answer in retrieved passages. "
+            )
+            * 12,
+        ),
+        settings.chunk_size,
+        settings.chunk_overlap,
     )
