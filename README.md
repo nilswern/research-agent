@@ -23,18 +23,26 @@ A complete generated report is committed as
 
 ## How it works
 
-```mermaid
+```
 graph TD
     START([question]) --> plan[plan]
-    plan --> agent[agent]
-    agent -->|tool calls| tools[tools]
+    plan --> agent
+
+    subgraph research ["Research loop (ReAct)"]
+        agent[agent] -->|tool calls| tools[tools]
+        tools -->|rounds left| agent
+    end
+
     agent -->|no tool calls| synthesize[synthesize]
-    tools -->|budget left| agent
-    tools -->|budget spent| synthesize
-    synthesize --> validate[validate]
-    validate -->|issues found| repair[repair]
-    repair --> validate
-    validate -->|clean| END([report])
+    tools -->|round budget spent| synthesize
+
+    subgraph quality ["Quality control"]
+        synthesize --> validate[validate]
+        validate -->|issues + repairs left| repair[repair]
+        repair --> validate
+    end
+
+    validate -->|clean, or repairs spent: ships with warning| END([report])
 ```
 
 Tool selection is made by the model, not hard-coded:
