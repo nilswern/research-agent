@@ -12,6 +12,10 @@ CITATION_MARKER = re.compile(r"\[(\d{1,3})\]")
 REFERENCE_ENTRY = re.compile(r"^\s*\[?(\d{1,3})[\]\.\)]", re.MULTILINE)
 REFERENCE_LINE = re.compile(r"^\s*\[?(\d{1,3})[\]\.\)]\s*(.*)$", re.MULTILINE)
 URL_PATTERN = re.compile(r"https?://[^\s<>\"'\)\]]+")
+# arXiv serves the same paper under /abs/, /pdf/ and per-version URLs.
+ARXIV_URL = re.compile(
+    r"^https?://(?:www\.)?arxiv\.org/(?:abs|pdf)/(?P<paper>[^?#]+?)(?:v\d+)?(?:\.pdf)?$"
+)
 SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
 #: Given the full report, return a description for every claim that its cited
@@ -53,7 +57,9 @@ class ValidationResult(BaseModel):
 
 
 def normalize_url(url: str) -> str:
-    return url.rstrip(".,;:)]").rstrip("/").lower()
+    cleaned = url.rstrip(".,;:)]").rstrip("/").lower()
+    arxiv = ARXIV_URL.match(cleaned)
+    return f"https://arxiv.org/abs/{arxiv.group('paper')}" if arxiv else cleaned
 
 
 def find_unsupported_urls(text: str, allowed_urls: list[str]) -> list[str]:

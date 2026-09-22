@@ -62,16 +62,17 @@ def test_tool_node_survives_failing_tool(store, test_settings, monkeypatch) -> N
     from src.tools import web_search as web_search_module
 
     def failing(query: str, max_results: int):
-        raise RuntimeError("boom")
+        raise RuntimeError("Web search unavailable: rate limit")
 
     monkeypatch.setattr(web_search_module, "run_web_search", failing)
     node = make_tool_node(build_tools(store, test_settings))
     state = {
         **initial_state("q"),
-        "messages": [tool_call_message("google_search", {"query": "x"}, "m1")],
+        "messages": [tool_call_message("web_search", {"query": "x"}, "m1")],
     }
     output = node(state)["messages"][0].content
-    assert "unavailable" in output.lower() or "failed" in output.lower()
+    assert "unavailable" in output.lower()
+    assert output.lower().count("web search unavailable") == 1, "no doubled prefix"
 
 
 def test_full_run_with_one_tool_round(store, test_settings) -> None:
@@ -118,7 +119,7 @@ def test_tools_are_bound_to_llm(store, test_settings) -> None:
     build_graph(store, test_settings, llm)
     assert {tool.name for tool in llm.bound_tools} == {
         "search_memory",
-        "google_search",
+        "web_search",
         "wikipedia_search",
         "arxiv_search",
         "scrape_webpage",

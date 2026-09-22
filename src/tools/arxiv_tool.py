@@ -10,7 +10,8 @@ from src.config.logging_config import get_logger
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
 from src.models.document import ContentType, SourceDocument, SourceTool
-from src.tools._common import fetched, label, no_results
+from src.services.untrusted import sanitize_line
+from src.tools._common import fetched, no_results
 
 logger = get_logger(__name__)
 
@@ -67,8 +68,8 @@ def make_arxiv_tool(store: VectorStore, settings: Settings) -> BaseTool:
         for document in documents:
             store.add_document(document, settings.chunk_size, settings.chunk_overlap)
             blocks.append(
-                f"Title: {label(document.title)}\n"
-                f"Authors: {label(document.author or 'unknown')}\n"
+                f"Title: {sanitize_line(document.title)}\n"
+                f"Authors: {sanitize_line(document.author or 'unknown')}\n"
                 f"Published: {document.published_date or 'unknown'}\n"
                 f"URL: {document.url}\n"
                 f"Abstract: {fetched(document.text, 900)}"

@@ -16,7 +16,7 @@ def test_chunks_carry_full_metadata() -> None:
     chunks = chunk_document(_document("Satz. " * 400), chunk_size=300, chunk_overlap=50)
     assert len(chunks) > 1
     first = chunks[0].metadata
-    assert first.source_tool == "web_scraper"
+    assert first.source_tool == "scrape_webpage"
     assert first.chunk_index == 0
     assert first.document_id and first.content_hash
     assert chunks[1].metadata.chunk_index == 1

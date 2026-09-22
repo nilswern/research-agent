@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 
@@ -147,7 +147,8 @@ def make_synthesis_node(
         )
         report = as_text(response.content).strip()
         logger.info("Report written (%d characters, %d sources)", len(report), len(allowed))
-        return {"report": report, "sources": allowed, "messages": [AIMessage(report)]}
+        # Keep the response itself: a rebuilt AIMessage would lose usage metadata.
+        return {"report": report, "sources": allowed, "messages": [response]}
 
     return synthesis_node
 

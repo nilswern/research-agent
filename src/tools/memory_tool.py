@@ -6,7 +6,8 @@ from langchain_core.tools import BaseTool, tool
 
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
-from src.tools._common import fetched, label
+from src.services.untrusted import sanitize_line
+from src.tools._common import fetched
 
 
 def make_memory_tool(store: VectorStore, settings: Settings) -> BaseTool:
@@ -19,14 +20,14 @@ def make_memory_tool(store: VectorStore, settings: Settings) -> BaseTool:
         relevance score between 0 and 1.
         """
         if store.count() == 0:
-            return "Memory is empty. Use google_search, wikipedia_search or arxiv_search first."
+            return "Memory is empty. Use web_search, wikipedia_search or arxiv_search first."
 
         hits = store.query(query, top_k=settings.retrieval_top_k)
         if not hits:
             return f"Nothing relevant in memory for '{query}'."
 
         blocks = [
-            f"[{index}] {label(hit.title)} (relevance {hit.relevance:.2f})\n"
+            f"[{index}] {sanitize_line(hit.title)} (relevance {hit.relevance:.2f})\n"
             f"    URL: {hit.url}\n"
             f"    Source: {hit.metadata.get('source_tool', 'unknown')}"
             f" | retrieved {str(hit.metadata.get('retrieved_at', ''))[:10]}\n"

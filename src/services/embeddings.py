@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from src.config.logging_config import get_logger
-from src.config.settings import get_settings
 
 if TYPE_CHECKING:
     from sentence_transformers import SentenceTransformer
@@ -54,20 +52,3 @@ class EmbeddingService:
     def embed_query(self, text: str) -> list[float]:
         prepared = f"query: {text}" if self._needs_e5_prefix else text
         return self._encode([prepared])[0]
-
-    @property
-    def dimension(self) -> int:
-        dimension = self.model.get_sentence_embedding_dimension()
-        if dimension is None:
-            raise RuntimeError(f"Model {self.model_name} reports no embedding dimension")
-        return int(dimension)
-
-
-@lru_cache(maxsize=1)
-def get_embedding_service() -> EmbeddingService:
-    settings = get_settings()
-    return EmbeddingService(
-        model_name=settings.embedding_model,
-        device=settings.embedding_device,
-        batch_size=settings.embedding_batch_size,
-    )

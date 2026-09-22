@@ -11,19 +11,18 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class SourceTool(StrEnum):
-    GOOGLE_SEARCH = "google_search"
-    WIKIPEDIA = "wikipedia_api"
+    """The tool that fetched a document; the value is the tool's own name."""
+
+    WEB_SEARCH = "web_search"
+    WIKIPEDIA = "wikipedia_search"
     ARXIV = "arxiv_search"
-    WEB_SCRAPER = "web_scraper"
-    MEMORY = "search_memory"
+    WEB_SCRAPER = "scrape_webpage"
 
 
 class ContentType(StrEnum):
     WEBPAGE = "webpage"
     ENCYCLOPEDIA = "encyclopedia"
     PAPER_ABSTRACT = "paper_abstract"
-    PAPER_FULLTEXT = "paper_fulltext"
-    SEARCH_SNIPPET = "search_snippet"
 
 
 def _utcnow() -> datetime:

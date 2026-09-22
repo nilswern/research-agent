@@ -95,16 +95,20 @@ def test_run_question_reports_a_fabricated_url_that_survives(store, test_setting
     assert result.unsupported_urls == ["https://example.com/made-up"]
 
 
-def test_token_usage_is_summed_when_the_provider_reports_it(store, test_settings) -> None:
+def test_token_usage_counts_every_model_call(store, test_settings) -> None:
+    """Plan, agent and synthesis all call the model; all three must be counted."""
     seed_rag_document(store, test_settings)
     llm = _llm(GOOD_REPORT)
     for message in llm.responses:
+        # Real providers report both; the callback needs the model name to attribute usage.
+        message.response_metadata = {"model_name": "fake-chat-model"}
         message.usage_metadata = {"input_tokens": 10, "output_tokens": 4, "total_tokens": 14}
 
     result = run_question(EvalQuestion(id="q", question="What is RAG?"), test_settings, store, llm)
 
-    assert result.input_tokens > 0
-    assert result.output_tokens > 0
+    # plan + agent (tool call) + agent (done) + synthesis = four calls
+    assert result.input_tokens == 40
+    assert result.output_tokens == 16
 
 
 # --- aggregation and rendering -------------------------------------------

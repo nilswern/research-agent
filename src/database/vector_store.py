@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol, cast
 
@@ -11,10 +10,8 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 
 from src.config.logging_config import get_logger
-from src.config.settings import get_settings
 from src.models.document import DocumentChunk, RetrievedChunk, SourceDocument
 from src.services.chunking import chunk_document
-from src.services.embeddings import get_embedding_service
 
 logger = get_logger(__name__)
 
@@ -148,14 +145,3 @@ class VectorStore:
     def known_urls(self) -> set[str]:
         entries = self._collection.get(include=["metadatas"])
         return {str(m["url"]) for m in entries.get("metadatas", []) or [] if m and m.get("url")}
-
-
-@lru_cache(maxsize=1)
-def get_vector_store() -> VectorStore:
-    settings = get_settings()
-    return VectorStore(
-        path=settings.chroma_path,
-        collection_name=settings.chroma_collection,
-        embedder=get_embedding_service(),
-        cache_max_age_days=settings.cache_max_age_days,
-    )

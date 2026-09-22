@@ -36,7 +36,7 @@ Tool selection is made by the model, not hard-coded:
 | Tool | Purpose |
 | --- | --- |
 | `search_memory` | Semantic search over material from this and previous runs |
-| `google_search` | General web search (DuckDuckGo, no API key) |
+| `web_search` | General web search (DuckDuckGo, no API key) |
 | `wikipedia_search` | Encyclopedic background |
 | `arxiv_search` | Scientific abstracts |
 | `scrape_webpage` | Full text of one URL, skipped if recently cached |
@@ -76,22 +76,20 @@ Anyone reviewing the agent can read the edges instead of guessing what the model
 will do next.
 
 **The model picks the tools, the code picks the limits.** All five tools are
-bound to the LLM and selection happens per question, preceded by a planning node
-that sets the direction. Hard-coded routing ("if the question mentions a paper,
-call arXiv") is more predictable but breaks on every question you did not
-anticipate. The budget, not a rule set, is what keeps runs bounded.
+bound to the LLM, and a planning node sets the direction first. Hard-coded
+routing ("if the question mentions a paper, call arXiv") is more predictable but
+breaks on every question you did not anticipate. The budget, not a rule set, is
+what keeps a run bounded.
 
-**Local embeddings over an embedding API.** Every retrieved passage gets embedded,
-so a per-chunk API call would dominate both cost and rate limits.
-`multilingual-e5-small` runs on CPU, handles German and English questions, and
-makes the memory usable without a network round trip. The trade-off is retrieval
-quality below large hosted models and a one-time model download.
+**Local embeddings over an embedding API.** Every retrieved passage gets
+embedded, so per-chunk API calls would dominate cost and rate limits.
+`multilingual-e5-small` runs on CPU and handles German and English. The
+trade-off is retrieval quality below large hosted models.
 
-**Provenance on every chunk, not just the text.** Each chunk carries `url`,
-`document_id`, `content_hash`, `retrieved_at` and the tool that found it. That
-single decision buys three features: re-indexing a known URL upserts instead of
-duplicating (`document_id` is the URL hash), the scraper can skip pages fetched
-recently, and stale material can be purged by age.
+**Provenance on every chunk, not just the text.** The metadata listed under
+[Memory](#memory) is what makes three features possible at once: re-indexing a
+known URL upserts instead of duplicating (`document_id` is the URL hash), the
+scraper can skip pages fetched recently, and stale material can be purged by age.
 
 **The report is validated against reality.** A research agent that invents a
 plausible URL is worse than one that says nothing, so the report is checked
@@ -100,26 +98,23 @@ citation markers without a reference entry trigger a repair round. Surviving
 issues are shown as a warning rather than silently shipped — an extra LLM call is
 cheap compared to a confidently fabricated source.
 
-**One event stream, two frontends.** `src/graph/runner.py` emits typed events
-(`plan`, `status`, `token`, `report`, `final`); the CLI renders them with `rich`,
-the web UI forwards them as Server-Sent Events. Progress reporting exists once,
-so the two interfaces cannot drift apart.
+**One event stream, two frontends.** `src/graph/runner.py` emits typed events;
+the CLI renders them with `rich`, the web UI forwards them as Server-Sent
+Events. Progress reporting exists once, so the two cannot drift apart.
 
-**A UI with no build step.** The page is plain HTML, CSS and JavaScript served by
-FastAPI — no bundler, no `node_modules`, no CDN, including a small hand-written
-Markdown renderer. Cloning the repo and running one command has to be enough;
-a frontend toolchain would be a second project to maintain.
+**A UI with no build step.** Plain HTML, CSS and JavaScript served by FastAPI —
+no bundler, no `node_modules`, no CDN, down to a hand-written Markdown renderer.
+Cloning the repo and running one command has to be enough; a frontend toolchain
+would be a second project to maintain.
 
 **One run at a time.** The vector store is a single local process, so the server
 rejects a second concurrent research instead of pretending to scale. Honest
 limits beat corrupted state.
 
 **Fetched text is data, not instruction.** A research agent reads pages written
-by strangers, so every fetched passage is fenced in `<untrusted_content>` markers
-that the prompts declare to be evidence only, and the graph reads URLs for the
-allow-list from the tool's own output rather than from the page body. The agent
-cannot be talked into citing an attacker's URL by a paragraph inside a page it
-scraped. See [Security](#security) for what this does and does not cover.
+by strangers, so fetched text is fenced and machine-relevant data is read from
+outside that fence. [Security](#security) describes the mechanism and its
+limits.
 
 ### Known limitations
 
@@ -129,6 +124,9 @@ scraped. See [Security](#security) for what this does and does not cover.
 - Cancelling a run stops it at the next event — an LLM or tool call already in
   flight still finishes.
 - Retrieval is pure vector similarity: no re-ranking, no hybrid keyword search.
+- URL identity is normalised per host (arXiv `/abs/`, `/pdf/` and version
+  suffixes collapse into one). The same paper mirrored on a different host still
+  counts as a separate source.
 - The faithfulness check measures similarity, not entailment: it flags claims a
   source never discusses, not ones it contradicts in detail.
 - The Markdown renderer covers what the reports use, not the full spec.
@@ -235,13 +233,12 @@ The terminal shows the run as it happens (abridged):
 ╰──────────────────────────────────────────────────────╯
 Plan created
 ╭─ Research plan ──────────────────────────────────────╮
-│ 1. Check memory for prior material on filtering      │
-│ 2. Search for pre- vs post-filtering trade-offs      │
+│ 1. Check memory  2. Compare pre- vs post-filtering   │
 │ 3. Read one primary source in full                   │
 ╰──────────────────────────────────────────────────────╯
 → search_memory
   Round 1 · 2 sources
-→ google_search, arxiv_search
+→ web_search, arxiv_search
   Round 2 · 11 sources
 → scrape_webpage
   Round 3 · 14 sources
@@ -249,8 +246,7 @@ Writing the report
 ───────────────────── Report ──────────────────────────
 # How Vector Databases Handle Metadata Filtering
 ## Summary
-Vector databases combine similarity search with attribute constraints using
-Filtered Approximate Nearest Neighbor Search (FANNS) ...
+Vector databases combine similarity search with attribute constraints ...
 Validation: 1 issue(s), repairing
 ───────────────── Corrected report ────────────────────
 ...
@@ -267,8 +263,11 @@ committed as [`examples/metadata-filtering.md`](examples/metadata-filtering.md).
 The browser UI shows the same run: plan and activity log on the left, the report
 streaming in on the right.
 
-![alt text](docs/ui.png)
-![alt text](docs/ui1.png)
+![The UI during a run: research plan and activity log on the left, the report
+streaming in on the right](docs/ui-running.png)
+
+![The same run finished: rendered report with inline citations and a validated
+reference list, 4 rounds and 27 sources](docs/ui-report.png)
 
 ## Evaluation
 
@@ -302,9 +301,13 @@ covered by offline tests using a fake model.
 
 ### Results
 
-Run of 2026-09-22 with `gemini-3.5-flash-lite`, three research rounds per
-question, faithfulness check off, memory pre-seeded with 18 chunks from earlier
-runs. Raw data: [`evals/results/20260922-full-run.json`](evals/results/20260922-full-run.json).
+Run of 2026-09-22 with three research rounds per question, faithfulness check
+off, memory pre-seeded with 18 chunks from earlier runs. Raw data:
+[`evals/results/20260922-full-run.json`](evals/results/20260922-full-run.json).
+
+The model was `gemini-3.5-flash-lite`, not the `gemini-3.8-flash` default: the
+free tier allows 15 requests per minute, and a run of 14 questions is about 100
+calls. Expect better numbers and a slower, pricier run on the default model.
 
 | Category | Questions | 1st pass valid | Clean after repair | Fabricated URLs | Avg rounds | Avg sources |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -316,18 +319,20 @@ runs. Raw data: [`evals/results/20260922-full-run.json`](evals/results/20260922-
 
 The bottom body row is the one worth reading. Questions with a documented answer
 were right on the first attempt; the questions with no trustworthy answer
-produced three of the four repairs, and the single report that still had a defect
-after repair - a citation marker without a matching reference entry - came from
-that group too. No report shipped a fabricated URL.
+produced three of the four repairs, and the one report that still had a defect
+afterwards - a citation marker without a reference entry - came from that group
+too. No report shipped a fabricated URL. That is the validation stage earning
+its cost exactly where it was meant to: the agent is least reliable when the
+honest answer is "this cannot be established", which is also when an invented
+source would do the most damage.
 
-That is the validation stage earning its cost exactly where it was meant to:
-the agent is least reliable when the honest answer is "this cannot be
-established", which is also when a plausible-looking invented source would do
-the most damage.
+Cost per question: 17 seconds. Token counts are recorded per run in the JSON,
+but the numbers in this particular file are undercounted - they predate the
+switch to a usage callback and only cover the agent node, not the planning,
+synthesis and repair calls. The next run will report them correctly.
 
-Cost per question: 17s, roughly 6.7k input and 160 output tokens. One question
-hit the free tier's per-minute limit mid-run; the harness recorded it as a
-failed measurement instead of crashing, and it was rerun afterwards.
+One question hit the free tier's per-minute limit mid-run; the harness recorded
+it as a failed measurement instead of crashing, and it was rerun afterwards.
 
 ## Security
 
@@ -368,18 +373,15 @@ Treat this as a local single-user tool, not as something to expose to a network.
 
 ## Observability
 
-Tracing is wired through environment variables only, so nothing is imported,
-nothing costs anything and CI needs no keys:
+Tracing needs no code and no dependency: LangChain reads these variables by
+itself, and every node, tool call and model call of a run becomes one trace -
+useful for seeing which round burned the budget. Unset, nothing changes.
 
 ```bash
 LANGSMITH_TRACING=true
 LANGSMITH_API_KEY=<your key>
 LANGSMITH_PROJECT=researchpilot
 ```
-
-LangChain picks these up by itself, and every node, tool call and model call of
-a run shows up as one trace - useful for seeing which round burned the budget.
-Unset, the agent runs exactly as before.
 
 <!-- Add a trace screenshot as docs/trace.png and uncomment the next line. -->
 <!-- ![A run in LangSmith](docs/trace.png) -->

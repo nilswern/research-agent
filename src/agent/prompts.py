@@ -18,7 +18,7 @@ RESEARCH_SYSTEM_PROMPT = """You are an autonomous research agent.
 
 You have these tools:
 - search_memory: semantic search over material collected earlier (this run or previous runs)
-- google_search: general web search, returns titles, URLs and short snippets
+- web_search: general web search, returns titles, URLs and short snippets
 - wikipedia_search: encyclopedic background, returns article summaries
 - arxiv_search: scientific papers, returns abstracts
 - scrape_webpage: full text of one specific URL

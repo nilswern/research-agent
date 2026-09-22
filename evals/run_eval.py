@@ -29,6 +29,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from langchain_core.callbacks import UsageMetadataCallbackHandler
 from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
@@ -98,14 +99,17 @@ def load_questions(path: Path = QUESTIONS_PATH) -> list[EvalQuestion]:
     return questions
 
 
-def token_usage(messages: list[Any]) -> tuple[int, int]:
-    """Sum token usage over the run; providers that report none give (0, 0)."""
+def token_usage(handler: UsageMetadataCallbackHandler) -> tuple[int, int]:
+    """Tokens over every model call of the run, summed across models.
+
+    Counting the messages in the state would miss most of it: the plan and the
+    repair response never enter ``messages``, and synthesis stores its report as
+    a fresh message. The callback sees every call the graph makes.
+    """
     inputs = outputs = 0
-    for message in messages:
-        usage = getattr(message, "usage_metadata", None)
-        if isinstance(usage, dict):
-            inputs += int(usage.get("input_tokens", 0) or 0)
-            outputs += int(usage.get("output_tokens", 0) or 0)
+    for usage in handler.usage_metadata.values():
+        inputs += int(usage.get("input_tokens", 0) or 0)
+        outputs += int(usage.get("output_tokens", 0) or 0)
     return inputs, outputs
 
 
@@ -118,7 +122,11 @@ def run_question(
     """Run one question end to end and measure it."""
     result = QuestionResult(id=item.id, category=item.category, question=item.question)
     graph = build_graph(store, settings, llm or create_llm(settings))
-    config: RunnableConfig = {"recursion_limit": recursion_limit(settings)}
+    usage = UsageMetadataCallbackHandler()
+    config: RunnableConfig = {
+        "recursion_limit": recursion_limit(settings),
+        "callbacks": [usage],
+    }
 
     first_validation: list[str] | None = None
     final: dict[str, Any] = {}
@@ -145,6 +153,7 @@ def run_question(
         result.error = f"{type(exc).__name__}: {exc}"
 
     result.duration_s = round(time.perf_counter() - started, 2)
+    result.input_tokens, result.output_tokens = token_usage(usage)
     if result.error:
         return result
 
@@ -160,7 +169,7 @@ def run_question(
     result.research_steps = int(final.get("research_steps", 0))
     result.sources = len(sources)
     result.report_chars = len(report)
-    result.input_tokens, result.output_tokens = token_usage(list(final.get("messages", [])))
+    result.input_tokens, result.output_tokens = token_usage(usage)
     return result
 
 

@@ -1,4 +1,4 @@
-"""google_search - general web search via DuckDuckGo (no API key)."""
+"""web_search - general web search via DuckDuckGo (no API key)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ from langchain_core.tools import BaseTool, tool
 
 from src.config.logging_config import get_logger
 from src.config.settings import Settings
-from src.tools._common import fetched, label, no_results
+from src.services.untrusted import sanitize_line
+from src.tools._common import fetched, no_results
 
 logger = get_logger(__name__)
 
@@ -40,8 +41,8 @@ def run_web_search(query: str, max_results: int) -> list[dict[str, str]]:
 
 
 def make_web_search_tool(settings: Settings) -> BaseTool:
-    @tool("google_search")
-    def google_search(query: str) -> str:
+    @tool("web_search")
+    def web_search(query: str) -> str:
         """Search the public web for a topic and return ranked titles, URLs and short snippets.
 
         Use this to discover sources for general, current or non-academic questions.
@@ -51,17 +52,17 @@ def make_web_search_tool(settings: Settings) -> BaseTool:
         try:
             results = run_web_search(query, settings.max_results_per_search)
         except RuntimeError as exc:
-            return f"Web search unavailable: {exc}"
+            return str(exc)  # already reads 'Web search unavailable: ...'
         if not results:
             return no_results(query, "web search")
 
         lines = [f"Web search results for '{query}':"]
         for index, result in enumerate(results, start=1):
             lines.append(
-                f"{index}. {label(result['title'])}\n"
+                f"{index}. {sanitize_line(result['title'])}\n"
                 f"   URL: {result['url']}\n"
                 f"   Snippet: {fetched(result['snippet'])}"
             )
         return "\n".join(lines)
 
-    return google_search
+    return web_search

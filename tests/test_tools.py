@@ -27,7 +27,7 @@ def test_registry_exposes_all_five_tools(store, test_settings) -> None:
     names = {tool.name for tool in build_tools(store, test_settings)}
     assert names == {
         "search_memory",
-        "google_search",
+        "web_search",
         "wikipedia_search",
         "arxiv_search",
         "scrape_webpage",

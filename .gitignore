@@ -10,3 +10,8 @@ reports/
 .ruff_cache/
 *.egg-info/
 .DS_Store
+
+# eval output, except the committed baseline run
+evals/results/*
+!evals/results/.gitkeep
+!evals/results/*-full-run.*

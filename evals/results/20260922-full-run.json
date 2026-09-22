@@ -7,7 +7,7 @@
     "max_report_repairs": 1,
     "faithfulness_check": false
   },
-  "note": "Merged from four category runs; hard-04 was rerun after a per-minute rate limit. Memory held 18 chunks from earlier runs.",
+  "note": "Merged from four category runs; hard-04 was rerun after a per-minute rate limit. Memory held 18 chunks from earlier runs. Token counts in this file are undercounted: they predate the switch to a usage callback and only cover the agent node's calls, not plan, synthesis or repair.",
   "summary": {
     "questions": 14,
     "completed": 14,

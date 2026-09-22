@@ -83,3 +83,25 @@ def test_extract_urls_strips_trailing_punctuation() -> None:
 def test_find_unsupported_urls_normalises_before_comparing() -> None:
     report = "Fact [1] https://Good.test/ and https://made-up.test"
     assert find_unsupported_urls(report, ["https://good.test"]) == ["https://made-up.test"]
+
+
+def test_arxiv_variants_are_one_source() -> None:
+    """The same paper under /abs/, /pdf/ and a version suffix is one URL."""
+    canonical = "https://arxiv.org/abs/2602.11443"
+    for variant in (
+        "http://arxiv.org/abs/2602.11443v1",
+        "https://arxiv.org/abs/2602.11443",
+        "https://arxiv.org/pdf/2602.11443",
+        "https://arxiv.org/pdf/2602.11443v2.pdf",
+        "https://www.arxiv.org/abs/2602.11443/",
+    ):
+        assert normalize_url(variant) == canonical, variant
+
+    report = "See http://arxiv.org/abs/2602.11443v1 and https://arxiv.org/pdf/2602.11443."
+    assert len(extract_urls(report)) == 1
+    assert find_unsupported_urls(report, [canonical]) == []
+
+
+def test_other_hosts_stay_distinct() -> None:
+    mirror = "https://www.semanticscholar.org/paper/2602.11443"
+    assert normalize_url(mirror) != normalize_url("https://arxiv.org/abs/2602.11443")
