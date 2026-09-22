@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 class SourceTool(StrEnum):
     """The tool that fetched a document; the value is the tool's own name."""
 
-    WEB_SEARCH = "web_search"
     WIKIPEDIA = "wikipedia_search"
     ARXIV = "arxiv_search"
     WEB_SCRAPER = "scrape_webpage"

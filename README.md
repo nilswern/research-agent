@@ -260,13 +260,13 @@ That run needed one repair: the first draft did not pass validation, the
 corrected one did. The complete report, with frontmatter and reference list, is
 committed as [`examples/metadata-filtering.md`](examples/metadata-filtering.md).
 
-The browser UI shows the same run: plan and activity log on the left, the report
-streaming in on the right.
+The browser UI shows another run of the same question: plan and activity log on
+the left, the report streaming in on the right.
 
 ![The UI during a run: research plan and activity log on the left, the report
 streaming in on the right](docs/ui-running.png)
 
-![The same run finished: rendered report with inline citations and a validated
+![That run finished: rendered report with inline citations and a validated
 reference list, 4 rounds and 27 sources](docs/ui-report.png)
 
 ## Evaluation
@@ -393,9 +393,6 @@ LANGSMITH_TRACING=true
 LANGSMITH_API_KEY=<your key>
 LANGSMITH_PROJECT=researchpilot
 ```
-
-<!-- Add a trace screenshot as docs/trace.png and uncomment the next line. -->
-<!-- ![A run in LangSmith](docs/trace.png) -->
 
 ## Configuration
 
