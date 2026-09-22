@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import ipaddress
+import socket
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 import httpx
 import trafilatura
@@ -13,18 +16,56 @@ from src.models.document import ContentType, SourceDocument, SourceTool
 logger = get_logger(__name__)
 
 
+MAX_REDIRECTS = 5
+
+
 class ScrapeError(RuntimeError):
     """The page could not be fetched or yielded no usable text."""
 
 
-def fetch_html(url: str, *, timeout: int, user_agent: str) -> str:
+def ensure_public_url(url: str) -> None:
+    """Reject anything that points into the machine or the local network.
+
+    The model chooses the URL, and a scraped page can suggest the next one, so
+    the agent must not become a way to read `http://localhost:8000/api` or a
+    router's admin page. Every hop of a redirect chain is checked before it is
+    requested, not afterwards.
+    """
+    host = urlsplit(url).hostname
+    if not host:
+        raise ScrapeError(f"No host in URL '{url}'")
+
     try:
-        response = httpx.get(
-            url,
-            timeout=timeout,
-            follow_redirects=True,
-            headers={"User-Agent": user_agent, "Accept-Language": "en,de;q=0.8"},
-        )
+        resolved = socket.getaddrinfo(host, None)
+    except OSError as exc:
+        raise ScrapeError(f"Could not resolve {host}: {exc}") from exc
+
+    for *_, sockaddr in resolved:
+        address = ipaddress.ip_address(str(sockaddr[0]).split("%")[0])
+        if (
+            address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_reserved
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            raise ScrapeError(f"Refusing to fetch a non-public address: {host} ({address})")
+
+
+def fetch_html(url: str, *, timeout: int, user_agent: str) -> str:
+    headers = {"User-Agent": user_agent, "Accept-Language": "en,de;q=0.8"}
+    try:
+        with httpx.Client(timeout=timeout, follow_redirects=False, headers=headers) as client:
+            for _ in range(MAX_REDIRECTS):
+                ensure_public_url(url)
+                response = client.get(url)
+                if response.is_redirect and response.next_request is not None:
+                    url = str(response.next_request.url)
+                    continue
+                break
+            else:
+                raise ScrapeError(f"Too many redirects for {url}")
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
         raise ScrapeError(f"HTTP {exc.response.status_code} for {url}") from exc

@@ -275,9 +275,10 @@ Source discipline is a claim, so there is a harness that measures it. It runs
 the agent over a fixed question set and records what actually happened:
 
 ```bash
-python -m evals.run_eval              # the whole set
-python -m evals.run_eval --limit 3    # a quick pass
-python -m evals.run_eval --category hard-to-source
+python -m evals.run_eval                      # the whole set
+python -m evals.run_eval --limit 3            # a quick pass
+python -m evals.run_eval --category current
+python -m evals.run_eval --delay 35           # pace it for a free-tier key
 ```
 
 The question set in [`evals/questions.jsonl`](evals/questions.jsonl) has four
@@ -301,38 +302,39 @@ covered by offline tests using a fake model.
 
 ### Results
 
-Run of 2026-09-22 with three research rounds per question, faithfulness check
-off, memory pre-seeded with 18 chunks from earlier runs. Raw data:
+Run of 2026-09-22 from a cold start - the vector store was empty, so nothing
+could come from memory. Three research rounds per question, faithfulness check
+off. Raw data:
 [`evals/results/20260922-full-run.json`](evals/results/20260922-full-run.json).
 
 The model was `gemini-3.5-flash-lite`, not the `gemini-3.8-flash` default: the
-free tier allows 15 requests per minute, and a run of 14 questions is about 100
-calls. Expect better numbers and a slower, pricier run on the default model.
+free tier allows 15 requests per minute and a question costs seven or eight, so
+the run was paced with `--delay 35`. Expect better answers and a slower, pricier
+run on the default model.
 
 | Category | Questions | 1st pass valid | Clean after repair | Fabricated URLs | Avg rounds | Avg sources |
 | --- | --- | --- | --- | --- | --- | --- |
-| factual | 3 | 2 | 3 | 0 | 3.0 | 11.0 |
-| multi-hop | 4 | 4 | 4 | 0 | 3.0 | 19.3 |
-| current | 3 | 3 | 3 | 0 | 3.0 | 15.0 |
-| hard-to-source | 4 | 1 | 3 | 0 | 2.8 | 16.5 |
-| **all** | **14** | **10 (71%)** | **13** | **0** | **2.9** | **15.8** |
+| factual | 3 | 2 | 2 | 0 | 2.7 | 13.7 |
+| multi-hop | 4 | 3 | 4 | 0 | 3.0 | 15.8 |
+| current | 3 | 3 | 3 | 0 | 3.0 | 18.3 |
+| hard-to-source | 4 | 4 | 4 | 0 | 3.0 | 17.5 |
+| **all** | **14** | **12 (86%)** | **13** | **0** | **2.9** | **16.4** |
 
-The bottom body row is the one worth reading. Questions with a documented answer
-were right on the first attempt; the questions with no trustworthy answer
-produced three of the four repairs, and the one report that still had a defect
-afterwards - a citation marker without a reference entry - came from that group
-too. No report shipped a fabricated URL. That is the validation stage earning
-its cost exactly where it was meant to: the agent is least reliable when the
-honest answer is "this cannot be established", which is also when an invented
-source would do the most damage.
+The number that matters is the one in the middle of that last row: **no report
+shipped a URL that no tool had returned**, across 14 questions and 229 collected
+sources. Two reports failed validation on the first attempt and were repaired.
+One report still had a defect afterwards - `fact-03`, a citation marker without
+a matching entry in the reference list - and notably it came from the *easiest*
+category, not from the unanswerable ones.
 
-Cost per question: 17 seconds. Token counts are recorded per run in the JSON,
-but the numbers in this particular file are undercounted - they predate the
-switch to a usage callback and only cover the agent node, not the planning,
-synthesis and repair calls. The next run will report them correctly.
+That last part is worth being careful about. An earlier run of the same set,
+with a warm memory, produced 10/14 on the first pass and put three of its four
+repairs in the `hard-to-source` group. Two runs, two different pictures: 14
+questions is a small sample, and a single number from it is a weak claim. What
+holds across both runs is the part the design is actually aimed at - zero
+fabricated sources in the shipped report.
 
-One question hit the free tier's per-minute limit mid-run; the harness recorded
-it as a failed measurement instead of crashing, and it was rerun afterwards.
+Cost per question: 16.5 seconds, about 13k input and 1.2k output tokens.
 
 ## Security
 
@@ -355,7 +357,14 @@ message structure, not text: the round limit, the repair limit and the
 validation result are computed in code, so no page can grant itself more rounds
 or skip a check. Titles and author names are flattened to a single short line.
 
-`tests/test_security.py` covers each of these with an injected page.
+**The scraper cannot reach inward.** The model picks the URL, so `scrape_webpage`
+resolves every host first and refuses loopback, private, link-local and reserved
+addresses - including the cloud metadata endpoint `169.254.169.254`. Redirects
+are followed manually, one hop at a time, and each hop is checked *before* it is
+requested, so a public page cannot bounce the agent into `http://localhost:8000`.
+
+`tests/test_security.py` covers each of these with an injected page or a forged
+redirect.
 
 ### What this does not cover
 
@@ -364,9 +373,11 @@ or skip a check. Titles and author names are flattened to a single short line.
 - A page can still mislead the agent with plausible false *content*. Injection
   defence is not fact-checking - that is what validation and the faithfulness
   check are for, and both have limits.
-- Tools run with the process's own network access. There is no sandbox, no
-  allow-list of domains, and `scrape_webpage` will fetch any URL the model asks
-  for, including internal addresses if the machine can reach them.
+- The address check happens at resolution time. A host that resolves to a public
+  address and then to a private one between check and connect (DNS rebinding)
+  would slip through; closing that needs a pinned-IP transport.
+- Any *public* URL is fair game: there is no domain allow-list and no sandbox
+  around the tools.
 - Nothing is rate-limited or quota-guarded beyond the research budget.
 
 Treat this as a local single-user tool, not as something to expose to a network.

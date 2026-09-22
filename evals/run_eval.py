@@ -243,6 +243,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--out", type=Path, default=RESULTS_DIR)
     parser.add_argument("--limit", type=int, default=None, help="only the first N questions")
     parser.add_argument("--category", default=None, help="only this category")
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.0,
+        help="seconds to wait between questions; the free tier allows 15 calls/min",
+    )
     parser.add_argument("--max-steps", type=int, default=None, help="override MAX_RESEARCH_STEPS")
     parser.add_argument("--verbose", action="store_true")
     return parser.parse_args(argv)
@@ -271,6 +277,8 @@ def main(argv: list[str] | None = None) -> int:
 
     results: list[QuestionResult] = []
     for index, item in enumerate(questions, start=1):
+        if index > 1 and args.delay:
+            time.sleep(args.delay)
         print(f"[{index}/{len(questions)}] {item.id}: {item.question}")
         result = run_question(item, settings, store, llm)
         results.append(result)
