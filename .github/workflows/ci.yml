@@ -38,13 +38,13 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Lint
-        run: ruff check src tests
+        run: ruff check src tests evals
 
       - name: Format
-        run: ruff format --check src tests
+        run: ruff format --check src tests evals
 
       - name: Types
-        run: mypy src
+        run: mypy src evals
 
       - name: Tests
         run: pytest

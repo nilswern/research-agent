@@ -1,4 +1,10 @@
-from src.services.validation import normalize_url, split_report, validate_report
+from src.services.validation import (
+    extract_urls,
+    find_unsupported_urls,
+    normalize_url,
+    split_report,
+    validate_report,
+)
 
 CLEAN = """# RAG
 ## Findings
@@ -67,3 +73,13 @@ def test_report_without_reference_section() -> None:
 
 def test_normalize_url() -> None:
     assert normalize_url("https://A.test/path/") == "https://a.test/path"
+
+
+def test_extract_urls_strips_trailing_punctuation() -> None:
+    urls = extract_urls("See https://a.test/page, and (https://b.test/x).")
+    assert urls == ["https://a.test/page", "https://b.test/x"]
+
+
+def test_find_unsupported_urls_normalises_before_comparing() -> None:
+    report = "Fact [1] https://Good.test/ and https://made-up.test"
+    assert find_unsupported_urls(report, ["https://good.test"]) == ["https://made-up.test"]

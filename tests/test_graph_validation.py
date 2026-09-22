@@ -1,7 +1,7 @@
 from langchain_core.messages import AIMessage
 
 from src.graph.builder import build_graph
-from src.graph.nodes import make_route_after_validation, validation_node
+from src.graph.nodes import make_route_after_validation, make_validation_node
 from src.graph.state import initial_state
 from src.models.document import SourceDocument, SourceTool
 from tests.conftest import FakeChatModel, tool_call_message
@@ -30,14 +30,16 @@ def _seed(store, settings) -> None:
     )
 
 
-def test_validation_node_reports_issues() -> None:
+def test_validation_node_reports_issues(store, test_settings) -> None:
+    node = make_validation_node(store, test_settings)
     state = {**initial_state("q"), "report": BAD_REPORT, "sources": [SOURCE_URL]}
-    assert validation_node(state)["validation_issues"]
+    assert node(state)["validation_issues"]
 
 
-def test_validation_node_passes_clean_report() -> None:
+def test_validation_node_passes_clean_report(store, test_settings) -> None:
+    node = make_validation_node(store, test_settings)
     state = {**initial_state("q"), "report": GOOD_REPORT, "sources": [SOURCE_URL]}
-    assert validation_node(state)["validation_issues"] == []
+    assert node(state)["validation_issues"] == []
 
 
 def test_route_after_validation() -> None:

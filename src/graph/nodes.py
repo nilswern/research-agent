@@ -23,6 +23,8 @@ from src.config.logging_config import get_logger
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
 from src.graph.state import ResearchState
+from src.services.faithfulness import make_support_checker
+from src.services.untrusted import sanitize_line, strip_untrusted, wrap_untrusted
 from src.services.validation import extract_urls, validate_report
 
 logger = get_logger(__name__)
@@ -35,11 +37,6 @@ def as_text(content: Any) -> str:
         parts = [part.get("text", "") if isinstance(part, dict) else str(part) for part in content]
         return "".join(parts)
     return str(content)
-
-
-def find_unsupported_urls(report: str, allowed: list[str]) -> list[str]:
-    allowed_set = set(allowed)
-    return [url for url in extract_urls(report) if url not in allowed_set]
 
 
 # --- Nodes ---------------------------------------------------------------
@@ -106,7 +103,9 @@ def make_tool_node(tools: list[BaseTool]) -> Callable[[ResearchState], dict[str,
                     logger.warning("Tool '%s' failed: %s", name, exc)
                     content = f"Tool '{name}' failed: {exc}. Try a different approach."
 
-            for url in extract_urls(content):
+            # Only the tool's own output may extend the allow-list: URLs inside
+            # fetched content are attacker-controlled and stay out of it.
+            for url in extract_urls(strip_untrusted(content)):
                 if url not in sources:
                     sources.append(url)
 
@@ -132,7 +131,9 @@ def make_synthesis_node(
         for index, hit in enumerate(hits, start=1):
             if hit.url and hit.url not in allowed:
                 allowed.append(hit.url)
-            blocks.append(f"[{index}] {hit.title} - {hit.url}\n{hit.text}")
+            blocks.append(
+                f"[{index}] {sanitize_line(hit.title)} - {hit.url}\n{wrap_untrusted(hit.text)}"
+            )
 
         prompt = SYNTHESIS_TEMPLATE.format(
             question=state["question"],
@@ -151,14 +152,25 @@ def make_synthesis_node(
     return synthesis_node
 
 
-def validation_node(state: ResearchState) -> dict[str, Any]:
-    result = validate_report(state.get("report", ""), list(state.get("sources", [])))
-    issues = result.as_issues()
-    if issues:
-        logger.warning("Validation failed: %s", " | ".join(issues))
-    else:
-        logger.info("Validation passed")
-    return {"validation_issues": issues}
+def make_validation_node(
+    store: VectorStore, settings: Settings
+) -> Callable[[ResearchState], dict[str, Any]]:
+    support_checker = make_support_checker(store, settings)
+
+    def validation_node(state: ResearchState) -> dict[str, Any]:
+        result = validate_report(
+            state.get("report", ""),
+            list(state.get("sources", [])),
+            support_checker=support_checker,
+        )
+        issues = result.as_issues()
+        if issues:
+            logger.warning("Validation failed: %s", " | ".join(issues))
+        else:
+            logger.info("Validation passed")
+        return {"validation_issues": issues}
+
+    return validation_node
 
 
 def make_repair_node(llm: BaseChatModel) -> Callable[[ResearchState], dict[str, Any]]:

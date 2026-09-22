@@ -11,7 +11,7 @@ from src.config.logging_config import get_logger
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
 from src.models.document import ContentType, SourceDocument, SourceTool
-from src.tools._common import no_results, truncate
+from src.tools._common import fetched, label, no_results
 
 logger = get_logger(__name__)
 
@@ -92,9 +92,9 @@ def make_wikipedia_tool(store: VectorStore, settings: Settings) -> BaseTool:
                 continue
             store.add_document(document, settings.chunk_size, settings.chunk_overlap)
             blocks.append(
-                f"Title: {document.title}\n"
+                f"Title: {label(document.title)}\n"
                 f"URL: {document.url}\n"
-                f"Summary: {truncate(document.text, 800)}"
+                f"Summary: {fetched(document.text, 800)}"
             )
 
         if not blocks:

@@ -8,7 +8,7 @@ from langchain_core.tools import BaseTool, tool
 
 from src.config.logging_config import get_logger
 from src.config.settings import Settings
-from src.tools._common import no_results, truncate
+from src.tools._common import fetched, label, no_results
 
 logger = get_logger(__name__)
 
@@ -58,9 +58,9 @@ def make_web_search_tool(settings: Settings) -> BaseTool:
         lines = [f"Web search results for '{query}':"]
         for index, result in enumerate(results, start=1):
             lines.append(
-                f"{index}. {result['title']}\n"
+                f"{index}. {label(result['title'])}\n"
                 f"   URL: {result['url']}\n"
-                f"   Snippet: {truncate(result['snippet'])}"
+                f"   Snippet: {fetched(result['snippet'])}"
             )
         return "\n".join(lines)
 

@@ -56,6 +56,15 @@ Fabricated URLs and citation markers without a reference entry trigger a repair
 round. If problems survive the repair budget, they are printed as a warning instead
 of being silently shipped.
 
+A real URL is not the same as a supporting one, so there is a second, optional
+check: with `FAITHFULNESS_CHECK=true`, every sentence carrying a citation is
+compared against the stored chunks of exactly the source it cites, using the
+embeddings already in ChromaDB. Sentences below `FAITHFULNESS_THRESHOLD` are
+reported as unsupported claims and go to the same repair stage. It is off by
+default because it costs one vector query per cited sentence, and it is a
+similarity proxy: it catches a claim the source never discusses, not a subtly
+wrong number.
+
 ## Design decisions
 
 **A state graph instead of a ReAct loop.** The research budget has to be
@@ -104,6 +113,13 @@ a frontend toolchain would be a second project to maintain.
 rejects a second concurrent research instead of pretending to scale. Honest
 limits beat corrupted state.
 
+**Fetched text is data, not instruction.** A research agent reads pages written
+by strangers, so every fetched passage is fenced in `<untrusted_content>` markers
+that the prompts declare to be evidence only, and the graph reads URLs for the
+allow-list from the tool's own output rather than from the page body. The agent
+cannot be talked into citing an attacker's URL by a paragraph inside a page it
+scraped. See [Security](#security) for what this does and does not cover.
+
 ### Known limitations
 
 - Single user by design: the server binds to localhost and has no authentication.
@@ -111,6 +127,8 @@ limits beat corrupted state.
 - Cancelling a run stops it at the next event — an LLM or tool call already in
   flight still finishes.
 - Retrieval is pure vector similarity: no re-ranking, no hybrid keyword search.
+- The faithfulness check measures similarity, not entailment: it flags claims a
+  source never discusses, not ones it contradicts in detail.
 - The Markdown renderer covers what the reports use, not the full spec.
 
 ## Setup
@@ -201,12 +219,170 @@ python main.py --graph
 | `--host` · `--port` | Address for `--web` (default `127.0.0.1:8000`) |
 | `--no-browser` | Do not open a browser tab with `--web` |
 
+## Example run
+
+```bash
+python main.py "How do vector databases handle metadata filtering?" --max-steps 3
+```
+
+The terminal shows the run as it happens:
+
+```
+╭─ Question ───────────────────────────────────────────╮
+│ How do vector databases handle metadata filtering?   │
+╰──────────────────────────────────────────────────────╯
+Plan created
+╭─ Research plan ──────────────────────────────────────╮
+│ 1. Check memory for prior material on filtering      │
+│ 2. Search for pre- vs post-filtering trade-offs      │
+│ 3. Read one primary source in full                   │
+╰──────────────────────────────────────────────────────╯
+→ search_memory
+  Round 1 · 0 sources
+→ google_search, wikipedia_search
+  Round 2 · 7 sources
+→ scrape_webpage
+  Round 3 · 9 sources
+Writing the report
+──────────────────── Report ───────────────────────────
+# Metadata filtering in vector databases
+## Summary
+...
+Validation passed
+
+Saved: reports/20260922-104233_how-do-vector-databases-handle-met.md
+3 rounds · 9 sources · 0 repairs · 142 chunks in memory
+```
+
+A full generated report from that command, including its frontmatter and
+reference list, is committed as
+[`examples/metadata-filtering.md`](examples/metadata-filtering.md).
+
+## Evaluation
+
+Source discipline is a claim, so there is a harness that measures it. It runs
+the agent over a fixed question set and records what actually happened:
+
+```bash
+python -m evals.run_eval              # the whole set
+python -m evals.run_eval --limit 3    # a quick pass
+python -m evals.run_eval --category hard-to-source
+```
+
+The question set in [`evals/questions.jsonl`](evals/questions.jsonl) has four
+kinds of question, and the last kind is the interesting one:
+
+| Category | What it probes |
+| --- | --- |
+| `factual` | One well-documented answer. The baseline. |
+| `multi-hop` | Two or three sub-questions that need different sources. |
+| `current` | Moving targets where the training data is wrong by now. |
+| `hard-to-source` | Questions with no trustworthy answer, including one that is unanswerable by construction. Declining is the correct behaviour. |
+
+Per question it records whether the first report passed validation without a
+repair, how many repairs ran, how many fabricated URLs and dangling citations
+survived, unsupported claims when the faithfulness check is on, research rounds,
+sources, duration and token usage. Results are written to `evals/results/` as
+JSON plus a Markdown table.
+
+This makes real API calls, so it is never part of CI. The harness itself is
+covered by offline tests using a fake model.
+
+### Results
+
+Run of 2026-09-22 with `gemini-3.5-flash-lite`, three research rounds per
+question, faithfulness check off, memory pre-seeded with 18 chunks from earlier
+runs. Raw data: [`evals/results/20260922-full-run.json`](evals/results/20260922-full-run.json).
+
+| Category | Questions | 1st pass valid | Clean after repair | Fabricated URLs | Avg rounds | Avg sources |
+| --- | --- | --- | --- | --- | --- | --- |
+| factual | 3 | 2 | 3 | 0 | 3.0 | 11.0 |
+| multi-hop | 4 | 4 | 4 | 0 | 3.0 | 19.3 |
+| current | 3 | 3 | 3 | 0 | 3.0 | 15.0 |
+| hard-to-source | 4 | 1 | 3 | 0 | 2.8 | 16.5 |
+| **all** | **14** | **10 (71%)** | **13** | **0** | **2.9** | **15.8** |
+
+The bottom body row is the one worth reading. Questions with a documented answer
+were right on the first attempt; the questions with no trustworthy answer
+produced three of the four repairs, and the single report that still had a defect
+after repair - a citation marker without a matching reference entry - came from
+that group too. No report shipped a fabricated URL.
+
+That is the validation stage earning its cost exactly where it was meant to:
+the agent is least reliable when the honest answer is "this cannot be
+established", which is also when a plausible-looking invented source would do
+the most damage.
+
+Cost per question: 17s, roughly 6.7k input and 160 output tokens. One question
+hit the free tier's per-minute limit mid-run; the harness recorded it as a
+failed measurement instead of crashing, and it was rerun afterwards.
+
+## Security
+
+The agent reads web pages, and a web page can contain text aimed at the model
+rather than at a reader. Three things follow from treating that as the default:
+
+**Fetched text is fenced.** Page bodies, snippets, abstracts and stored passages
+are wrapped in `<untrusted_content>` delimiters before they reach the model, with
+any delimiter inside the payload neutralised first. The research and synthesis
+prompts state that fenced text is evidence and never an instruction.
+
+**Machine-relevant data is read outside the fence.** The allow-list of citable
+URLs is built only from what a tool itself emitted - the URL it fetched, the URLs
+a search API returned - never from inside fetched content. A page telling the
+agent to cite `attacker.test` produces a URL the validation stage then rejects as
+never returned by any tool.
+
+**Control flow cannot be argued with.** Budgets and routing read counters and
+message structure, not text: the round limit, the repair limit and the
+validation result are computed in code, so no page can grant itself more rounds
+or skip a check. Titles and author names are flattened to a single short line.
+
+`tests/test_security.py` covers each of these with an injected page.
+
+### What this does not cover
+
+- The model still *reads* the injected text. Fencing makes it unlikely to obey,
+  not impossible; no prompt-level defence is a guarantee.
+- A page can still mislead the agent with plausible false *content*. Injection
+  defence is not fact-checking - that is what validation and the faithfulness
+  check are for, and both have limits.
+- Tools run with the process's own network access. There is no sandbox, no
+  allow-list of domains, and `scrape_webpage` will fetch any URL the model asks
+  for, including internal addresses if the machine can reach them.
+- Nothing is rate-limited or quota-guarded beyond the research budget.
+
+Treat this as a local single-user tool, not as something to expose to a network.
+
+## Observability
+
+Tracing is wired through environment variables only, so nothing is imported,
+nothing costs anything and CI needs no keys:
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=<your key>
+LANGSMITH_PROJECT=researchpilot
+```
+
+LangChain picks these up by itself, and every node, tool call and model call of
+a run shows up as one trace - useful for seeing which round burned the budget.
+Unset, the agent runs exactly as before.
+
+<!-- Add a trace screenshot as docs/trace.png and uncomment the next line. -->
+<!-- ![A run in LangSmith](docs/trace.png) -->
+
 ## Configuration
 
 All settings live in `.env` (copy `.env.example`): model names, `CHUNK_SIZE`,
 `RETRIEVAL_TOP_K`, `MAX_RESEARCH_STEPS`, `MAX_RESULTS_PER_SEARCH`,
 `MAX_REPORT_REPAIRS`, `CACHE_MAX_AGE_DAYS`, output language and paths. Every
 value has a default; only `GOOGLE_API_KEY` is required.
+
+Two optional switches are off unless you turn them on: `FAITHFULNESS_CHECK`
+(plus `FAITHFULNESS_THRESHOLD`) adds the claim-support check described under
+[Source integrity](#source-integrity), and the `LANGSMITH_*` variables enable
+[tracing](#observability).
 
 ## Project layout
 
@@ -218,12 +394,16 @@ src/
 ├── graph/              state, nodes, builder, mermaid export, run event stream
 ├── tools/              the five LLM tools
 ├── database/           ChromaDB layer and store factory
-├── services/           llm, embeddings, chunking, scraper, validation, reporting
+├── services/           llm, embeddings, chunking, scraper, reporting, validation,
+│                       faithfulness, untrusted-content fencing
 ├── models/             Pydantic data models
 ├── config/             settings, logging
 ├── web/                FastAPI app, uvicorn launcher, static UI
 └── cli.py
+evals/                  question set and the measurement harness
 tests/                  unit tests, no network calls
+examples/               a generated report to look at
+docs/                   screenshots for the README
 reports/                generated Markdown reports
 data/chroma/            the vector store
 ```
@@ -235,9 +415,9 @@ CLI and the UI always report the same progress.
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check src tests
-ruff format --check src tests
-mypy src
+ruff check src tests evals
+ruff format --check src tests evals
+mypy src evals
 pytest -q
 ```
 

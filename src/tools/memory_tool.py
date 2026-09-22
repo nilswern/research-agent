@@ -6,7 +6,7 @@ from langchain_core.tools import BaseTool, tool
 
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
-from src.tools._common import truncate
+from src.tools._common import fetched, label
 
 
 def make_memory_tool(store: VectorStore, settings: Settings) -> BaseTool:
@@ -26,11 +26,11 @@ def make_memory_tool(store: VectorStore, settings: Settings) -> BaseTool:
             return f"Nothing relevant in memory for '{query}'."
 
         blocks = [
-            f"[{index}] {hit.title} (relevance {hit.relevance:.2f})\n"
+            f"[{index}] {label(hit.title)} (relevance {hit.relevance:.2f})\n"
             f"    URL: {hit.url}\n"
             f"    Source: {hit.metadata.get('source_tool', 'unknown')}"
             f" | retrieved {str(hit.metadata.get('retrieved_at', ''))[:10]}\n"
-            f"    {truncate(hit.text, 700)}"
+            f"    {fetched(hit.text, 700)}"
             for index, hit in enumerate(hits, start=1)
         ]
         return f"Memory results for '{query}':\n\n" + "\n\n".join(blocks)

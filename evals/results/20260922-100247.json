@@ -1,0 +1,78 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "created_at": "2026-09-22T10:02:47.054120+00:00",
+  "settings": {
+    "max_research_steps": 3,
+    "max_results_per_search": 5,
+    "max_report_repairs": 1,
+    "faithfulness_check": false
+  },
+  "summary": {
+    "questions": 3,
+    "completed": 3,
+    "failed": 0,
+    "first_pass_valid": 3,
+    "first_pass_valid_rate": 1.0,
+    "clean_after_repair": 3,
+    "reports_with_fabricated_urls": 0,
+    "total_repairs": 0,
+    "avg_research_steps": 3.0,
+    "avg_sources": 15.0,
+    "avg_duration_s": 13.18,
+    "input_tokens": 18240,
+    "output_tokens": 262
+  },
+  "results": [
+    {
+      "id": "current-01",
+      "category": "current",
+      "question": "Which vector databases support hybrid search natively as of 2026, and how do they implement it?",
+      "first_pass_valid": true,
+      "repairs": 0,
+      "unsupported_urls": [],
+      "dangling_citations": [],
+      "unsupported_claims": [],
+      "research_steps": 3,
+      "sources": 12,
+      "report_chars": 3562,
+      "duration_s": 17.61,
+      "input_tokens": 6295,
+      "output_tokens": 103,
+      "error": null
+    },
+    {
+      "id": "current-02",
+      "category": "current",
+      "question": "What changed in LangGraph's streaming API in its recent releases?",
+      "first_pass_valid": true,
+      "repairs": 0,
+      "unsupported_urls": [],
+      "dangling_citations": [],
+      "unsupported_claims": [],
+      "research_steps": 3,
+      "sources": 15,
+      "report_chars": 1789,
+      "duration_s": 9.83,
+      "input_tokens": 6110,
+      "output_tokens": 80,
+      "error": null
+    },
+    {
+      "id": "current-03",
+      "category": "current",
+      "question": "Which open-weight embedding models are currently recommended for multilingual retrieval, and how do they compare on MTEB?",
+      "first_pass_valid": true,
+      "repairs": 0,
+      "unsupported_urls": [],
+      "dangling_citations": [],
+      "unsupported_claims": [],
+      "research_steps": 3,
+      "sources": 18,
+      "report_chars": 3222,
+      "duration_s": 12.11,
+      "input_tokens": 5835,
+      "output_tokens": 79,
+      "error": null
+    }
+  ]
+}

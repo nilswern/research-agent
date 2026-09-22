@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     max_results_per_search: int = Field(default=5, ge=1, le=20)
     max_report_repairs: int = Field(default=1, ge=0, le=3)
 
+    # --- Faithfulness ---
+    # Off by default: it costs one vector query per cited sentence.
+    faithfulness_check: bool = False
+    faithfulness_threshold: float = Field(default=0.45, ge=0.0, le=1.0)
+
     # --- Web Scraper ---
     scraper_timeout: int = Field(default=20, ge=1, le=120)
     scraper_max_chars: int = Field(default=20_000, ge=1000)

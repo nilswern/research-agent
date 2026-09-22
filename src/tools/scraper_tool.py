@@ -8,7 +8,7 @@ from src.config.logging_config import get_logger
 from src.config.settings import Settings
 from src.database.vector_store import VectorStore
 from src.services.scraper import ScrapeError, scrape_url
-from src.tools._common import truncate
+from src.tools._common import fetched, label
 
 logger = get_logger(__name__)
 
@@ -45,10 +45,10 @@ def make_scraper_tool(store: VectorStore, settings: Settings) -> BaseTool:
 
         store.add_document(document, settings.chunk_size, settings.chunk_overlap)
         return (
-            f"Scraped: {document.title}\n"
+            f"Scraped: {label(document.title)}\n"
             f"URL: {document.url}\n"
             f"Published: {document.published_date or 'unknown'}\n\n"
-            f"{truncate(document.text, 3000)}"
+            f"{fetched(document.text, 3000)}"
         )
 
     return scrape_webpage

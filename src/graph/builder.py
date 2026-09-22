@@ -18,8 +18,8 @@ from src.graph.nodes import (
     make_route_after_validation,
     make_synthesis_node,
     make_tool_node,
+    make_validation_node,
     route_after_agent,
-    validation_node,
 )
 from src.graph.state import ResearchState
 from src.tools import build_tools
@@ -35,7 +35,7 @@ def build_graph(store: VectorStore, settings: Settings, llm: BaseChatModel) -> C
         "agent": make_agent_node(llm.bind_tools(tools)),
         "tools": make_tool_node(tools),
         "synthesize": make_synthesis_node(llm, store, settings),
-        "validate": validation_node,
+        "validate": make_validation_node(store, settings),
         "repair": make_repair_node(llm),
     }
 

@@ -2,8 +2,6 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 
 from src.graph.builder import build_graph
 from src.graph.nodes import (
-    extract_urls,
-    find_unsupported_urls,
     make_plan_node,
     make_route_after_tools,
     make_tool_node,
@@ -26,16 +24,6 @@ def _seed_memory(store, settings) -> None:
         settings.chunk_size,
         settings.chunk_overlap,
     )
-
-
-def test_extract_urls_strips_trailing_punctuation() -> None:
-    urls = extract_urls("See https://a.test/page, and (https://b.test/x).")
-    assert urls == ["https://a.test/page", "https://b.test/x"]
-
-
-def test_find_unsupported_urls() -> None:
-    report = "Fact [1] https://good.test and https://made-up.test"
-    assert find_unsupported_urls(report, ["https://good.test"]) == ["https://made-up.test"]
 
 
 def test_plan_node_seeds_messages(test_settings) -> None:
