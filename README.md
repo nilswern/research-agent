@@ -24,26 +24,27 @@ A complete generated report is committed as
 ## How it works
 
 ```mermaid
-graph TD
-    START([question]) --> plan[plan]
-    plan --> agent
+flowchart TD
+    START([START]) --> plan
 
-    subgraph research ["Research loop (ReAct)"]
-        agent[agent] -->|tool calls| tools[tools]
-        tools -->|rounds left| agent
+    subgraph research [Research loop]
+        agent -. tool calls .-> tools
+        tools -. rounds left .-> agent
     end
 
-    agent -->|no tool calls| synthesize[synthesize]
-    tools -->|round budget spent| synthesize
+    plan --> agent
+    agent -. no tool calls .-> synthesize
+    tools -. budget spent .-> synthesize
 
-    subgraph quality ["Quality control"]
-        synthesize --> validate[validate]
-        validate -->|issues + repairs left| repair[repair]
+    subgraph quality [Quality control]
+        synthesize --> validate
+        validate -. issues .-> repair
         repair --> validate
     end
 
-    validate -->|clean, or repairs spent: ships with warning| END([report])
+    validate -. clean or repairs spent .-> END([END])
 ```
+
 
 Tool selection is made by the model, not hard-coded:
 
