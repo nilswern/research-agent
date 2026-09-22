@@ -267,7 +267,8 @@ committed as [`examples/metadata-filtering.md`](examples/metadata-filtering.md).
 The browser UI shows the same run: plan and activity log on the left, the report
 streaming in on the right.
 
-![The browser UI during a run](docs/ui.png)
+![alt text](docs/ui.png)
+![alt text](docs/ui1.png)
 
 ## Evaluation
 
