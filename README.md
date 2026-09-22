@@ -23,7 +23,7 @@ A complete generated report is committed as
 
 ## How it works
 
-```
+```mermaid
 graph TD
     START([question]) --> plan[plan]
     plan --> agent
