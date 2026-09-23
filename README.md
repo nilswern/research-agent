@@ -49,9 +49,6 @@ The diagram is hand-edited for readability; `python main.py --graph` prints the
 compiled graph for comparison.
 
 Tool selection is made by the model, not hard-coded:
-````
-
-Tool selection is made by the model, not hard-coded:
 
 | Tool | Purpose |
 | --- | --- |
