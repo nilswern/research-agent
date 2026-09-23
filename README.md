@@ -44,7 +44,12 @@ flowchart TD
 
     validate -. clean or repairs spent .-> END([END])
 ```
-Hand-drawn for readability; python main.py --graph prints the compiled graph for comparison.
+
+The diagram is hand-drawn for readability; `python main.py --graph` prints the
+compiled graph for comparison.
+
+Tool selection is made by the model, not hard-coded:
+````
 
 Tool selection is made by the model, not hard-coded:
 
